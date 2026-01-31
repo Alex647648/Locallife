@@ -1,0 +1,10 @@
+
+{
+  "name": "Copy of LocalLife",
+  "description": "A decentralized local life service platform powered by AI Agents and x402 tokenized service assets. Seamlessly connect buyers and sellers through natural language interaction and secure crypto escrow.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
