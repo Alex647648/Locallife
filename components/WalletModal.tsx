@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -6,51 +7,19 @@ interface WalletModalProps {
   onConnect: (walletName: string) => void;
 }
 
-const WALLETS = [
-  { 
-    name: 'MetaMask', 
-    icon: 'https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/Metamask-logo.svg' 
-  },
-  { 
-    name: 'Coinbase', 
-    icon: 'https://avatars.githubusercontent.com/u/18060234?v=4' 
-  },
-  { 
-    name: 'WalletConnect', 
-    icon: 'https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg' 
-  },
-  { 
-    name: 'Trust', 
-    icon: 'https://avatars.githubusercontent.com/u/32179889?v=4' 
-  },
-  { 
-    name: 'Rainbow', 
-    icon: 'https://avatars.githubusercontent.com/u/48327834?v=4' 
-  }
-];
-
-const WalletIcon: React.FC<{ wallet: typeof WALLETS[0] }> = ({ wallet }) => {
-  const [error, setError] = useState(false);
-  
-  if (error || !wallet.icon) {
-    return (
-      <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 text-lg font-bold">
-        {wallet.name[0]}
-      </div>
-    );
-  }
-
-  return (
-    <img 
-      src={wallet.icon} 
-      alt={wallet.name} 
-      className="w-full h-full object-contain" 
-      onError={() => setError(true)}
-    />
-  );
-};
-
+// Using Dynamic SDK's built-in widget for wallet connection
+// This replaces the fake wallet buttons with real MetaMask/Coinbase/etc integration
 const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose, onConnect }) => {
+  const { primaryWallet, user } = useDynamicContext();
+
+  // When wallet connects via Dynamic, notify parent component
+  React.useEffect(() => {
+    if (primaryWallet && user) {
+      onConnect(primaryWallet.connector?.name || 'wallet');
+      onClose();
+    }
+  }, [primaryWallet, user, onConnect, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -64,7 +33,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose, onConnect })
         
         <div className="pt-10 pb-6 px-10 flex items-center justify-between">
           <h2 className="text-[22px] font-semibold text-slate-900 tracking-tight flex-1 text-center pr-2 ml-4">
-            Log in or sign up
+            Connect Wallet
           </h2>
           <button 
             onClick={onClose}
@@ -76,26 +45,28 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose, onConnect })
           </button>
         </div>
 
-        <div className="px-10 pb-8 space-y-3 max-h-[460px] overflow-y-auto scrollbar-hide">
-          {WALLETS.map((wallet) => (
-            <button
-              key={wallet.name}
-              onClick={() => onConnect(wallet.name)}
-              className="w-full group flex items-center gap-4 p-4 rounded-2xl border border-slate-50 hover:border-slate-200 hover:bg-slate-50 transition-all active:scale-[0.98]"
-            >
-              <div className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center bg-white shadow-sm ring-1 ring-black/5 group-hover:scale-110 transition-transform p-1.5">
-                <WalletIcon wallet={wallet} />
-              </div>
-              <span className="text-[15px] font-bold text-slate-800 tracking-tight">{wallet.name}</span>
-            </button>
-          ))}
+        <div className="px-10 pb-8">
+          {/* Dynamic Widget handles all wallet connections */}
+          <DynamicWidget 
+            innerButtonComponent={
+              <button className="w-full py-4 px-6 bg-slate-900 text-white rounded-2xl text-sm font-bold uppercase tracking-widest hover:bg-blue-600 transition-all">
+                Connect Wallet
+              </button>
+            }
+          />
+          
+          <p className="text-center text-xs text-slate-400 mt-4">
+            Connect with MetaMask, Coinbase, or create an embedded wallet
+          </p>
         </div>
 
         <div className="bg-slate-50/80 py-4 px-10 border-t border-slate-100 flex items-center justify-center gap-2">
            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Powered by</span>
-           <div className="flex items-center gap-1 opacity-40 grayscale group-hover:grayscale-0 transition-all">
-             <div className="w-4 h-4 bg-slate-400 rotate-45 rounded-[2px]"></div>
-             <span className="text-[11px] font-extrabold text-slate-900 tracking-tighter italic">dynamic</span>
+           <div className="flex items-center gap-1">
+             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+               <rect x="4" y="4" width="16" height="16" rx="4" fill="#6366f1"/>
+             </svg>
+             <span className="text-[11px] font-extrabold text-slate-900 tracking-tighter">Dynamic</span>
            </div>
         </div>
       </div>
