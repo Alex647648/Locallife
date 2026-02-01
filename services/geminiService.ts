@@ -10,7 +10,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api
 export async function* getAgentResponseStream(
   messages: ChatMessage[],
   systemInstruction: string,
-  model: string = 'gemini-3-flash-preview'
+  model: string = 'gemini-3-flash-preview',
+  apiKey?: string
 ): AsyncGenerator<{ text: string }, void, unknown> {
   try {
     const response = await fetch(`${API_BASE}/agent/chat`, {
@@ -22,6 +23,7 @@ export async function* getAgentResponseStream(
         messages,
         systemInstruction,
         model,
+        apiKey: apiKey || undefined, // 如果提供了 API Key，则传递
       }),
     });
 

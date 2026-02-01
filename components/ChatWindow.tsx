@@ -1,11 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage, UserRole } from '../types';
+import { ChatMessage, UserRole, Service, Demand } from '../types';
 import AgentSettings from './AgentSettings';
+import CardPreview from './CardPreview';
 
 interface ChatWindowProps {
   messages: ChatMessage[];
-  onSendMessage: (text: string, modelId: string) => void;
+  onSendMessage: (text: string, modelId: string, apiKey?: string) => void;
+  onConfirmCard?: (type: 'service' | 'demand', data: Partial<Service> | Partial<Demand>) => void;
   isLoading: boolean;
   role: UserRole;
   onRoleChange: (role: UserRole) => void;
@@ -15,7 +17,8 @@ interface ChatWindowProps {
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
   messages, 
-  onSendMessage, 
+  onSendMessage,
+  onConfirmCard,
   isLoading, 
   role,
   onRoleChange,
@@ -26,6 +29,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [isAgentStarted, setIsAgentStarted] = useState(true);
   const [modelId, setModelId] = useState('gemini-3-flash-preview');
+  const [apiKey, setApiKey] = useState<string>(() => {
+    // 从 localStorage 读取 API Key
+    return localStorage.getItem('gemini_api_key') || '';
+  });
+  const [previewCard, setPreviewCard] = useState<{
+    type: 'service' | 'demand';
+    data: Partial<Service> | Partial<Demand>;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,7 +66,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    onSendMessage(input, modelId);
+    onSendMessage(input, modelId, apiKey);
     setInput('');
     // 重置输入框高度
     if (textareaRef.current) {
@@ -66,6 +77,71 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const handleStartAgent = () => {
     setIsAgentStarted(!isAgentStarted);
   };
+
+  const handleConfirmCard = () => {
+    if (previewCard && onConfirmCard) {
+      onConfirmCard(previewCard.type, previewCard.data);
+      // 发送确认消息给AI
+      const confirmText = previewCard.type === 'service' 
+        ? 'Yes, this looks good! Please create the service card.'
+        : 'Yes, this looks good! Please create the demand card.';
+      onSendMessage(confirmText, modelId, apiKey);
+      setPreviewCard(null);
+    }
+  };
+
+  const handleEditCard = () => {
+    // 将卡片数据转换为自然语言，让用户继续编辑
+    if (previewCard) {
+      const card = previewCard.data;
+      let editPrompt = '';
+      if (previewCard.type === 'service') {
+        const s = card as Partial<Service>;
+        editPrompt = `I want to edit my service. Current details: Title: ${s.title}, Category: ${s.category}, Description: ${s.description}, Location: ${s.location}, Price: ${s.price} ${s.unit}. What would you like to change?`;
+      } else {
+        const d = card as Partial<Demand>;
+        editPrompt = `I want to edit my demand. Current details: Title: ${d.title}, Category: ${d.category}, Description: ${d.description}, Location: ${d.location}, Budget: ${d.budget} USDC. What would you like to change?`;
+      }
+      setPreviewCard(null);
+      onSendMessage(editPrompt, modelId, apiKey);
+    }
+  };
+
+  const handleCancelCard = () => {
+    // 发送取消消息给AI
+    onSendMessage('Actually, I want to cancel this. Let me start over.', modelId, apiKey);
+    setPreviewCard(null);
+  };
+
+  // 检查最后一条助手消息中是否包含预览卡片数据
+  useEffect(() => {
+    if (!isLoading) {
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      const lastMessage = assistantMessages[assistantMessages.length - 1];
+      if (lastMessage) {
+        const jsonMatch = lastMessage.content.match(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/);
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            const actionData = JSON.parse(jsonMatch[1]);
+            if (actionData.action === 'preview_service' || actionData.action === 'preview_demand') {
+              setPreviewCard({
+                type: actionData.action === 'preview_service' ? 'service' : 'demand',
+                data: actionData.data
+              });
+            } else {
+              // 如果不是预览动作，清除预览
+              setPreviewCard(null);
+            }
+          } catch (e) {
+            // 忽略解析错误
+          }
+        } else {
+          // 如果没有JSON，清除预览
+          setPreviewCard(null);
+        }
+      }
+    }
+  }, [messages, isLoading]);
 
   return (
     <div className={`flex flex-col bg-white/80 backdrop-blur-3xl border-l border-black/5 h-full shadow-2xl relative ${className}`}>
@@ -79,6 +155,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         role={role}
         selectedModel={modelId}
         onModelChange={setModelId}
+        apiKey={apiKey}
+        onApiKeyChange={setApiKey}
       />
 
       {/* Header */}
@@ -104,21 +182,33 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
-        {messages.filter(m => m.role !== 'system').map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[90%] px-4 py-3 rounded-2xl ${
-              msg.role === 'user' 
-                ? 'bg-slate-900 text-white rounded-tr-none shadow-lg' 
-                : 'bg-white text-slate-800 rounded-tl-none border border-black/5 shadow-sm'
-            }`}>
-              <p className="text-[13px] font-medium leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-              <div className={`flex items-center gap-2 mt-2 opacity-40 ${msg.role === 'user' ? 'text-white' : 'text-slate-500'}`}>
-                 <span className="text-[8px] font-bold uppercase tracking-widest">{msg.role}</span>
-                 <span className="text-[8px] font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        {messages.filter(m => m.role !== 'system').map((msg) => {
+          // 检查是否包含预览卡片
+          const jsonMatch = msg.content.match(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/);
+          const cleanContent = jsonMatch 
+            ? msg.content.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim()
+            : msg.content;
+          
+          return (
+            <div key={msg.id}>
+              <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[90%] px-4 py-3 rounded-2xl ${
+                  msg.role === 'user' 
+                    ? 'bg-slate-900 text-white rounded-tr-none shadow-lg' 
+                    : 'bg-white text-slate-800 rounded-tl-none border border-black/5 shadow-sm'
+                }`}>
+                  {cleanContent && (
+                    <p className="text-[13px] font-medium leading-relaxed whitespace-pre-wrap">{cleanContent}</p>
+                  )}
+                  <div className={`flex items-center gap-2 mt-2 opacity-40 ${msg.role === 'user' ? 'text-white' : 'text-slate-500'}`}>
+                     <span className="text-[8px] font-bold uppercase tracking-widest">{msg.role}</span>
+                     <span className="text-[8px] font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-black/5">
@@ -128,6 +218,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
               </div>
             </div>
+          </div>
+        )}
+        
+        {/* 预览卡片 - 显示在消息列表底部 */}
+        {previewCard && !isLoading && (
+          <div className="flex justify-start">
+            <CardPreview
+              type={previewCard.type}
+              data={previewCard.data}
+              onConfirm={handleConfirmCard}
+              onEdit={handleEditCard}
+              onCancel={handleCancelCard}
+            />
           </div>
         )}
       </div>
@@ -144,7 +247,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 if (!input.trim() || isLoading) return;
-                onSendMessage(input, modelId);
+                onSendMessage(input, modelId, apiKey);
                 setInput('');
                 // 重置输入框高度
                 if (textareaRef.current) {

@@ -12,12 +12,13 @@ interface ChatRequest {
   systemInstruction: string;
   model?: string;
   contextId?: string;
+  apiKey?: string; // 可选的 API Key，如果提供则使用，否则使用环境变量
 }
 
 // POST /api/v1/agent/chat - SSE endpoint for streaming chat
 agentRouter.post('/chat', async (req: Request, res: Response) => {
   try {
-    const { messages, systemInstruction, model, contextId }: ChatRequest = req.body;
+    const { messages, systemInstruction, model, contextId, apiKey }: ChatRequest = req.body;
 
     if (!messages || !systemInstruction) {
       return res.status(400).json({
@@ -35,7 +36,7 @@ agentRouter.post('/chat', async (req: Request, res: Response) => {
 
     // Stream response
     try {
-      const stream = getAgentResponseStream(messages, systemInstruction, model);
+      const stream = getAgentResponseStream(messages, systemInstruction, model, apiKey);
       let fullResponse = '';
 
       for await (const chunk of stream) {

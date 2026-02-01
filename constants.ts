@@ -14,7 +14,7 @@ export const MOCK_SERVICES: Service[] = [
     unit: 'USDC/session',
     tokenAddress: '0xTHAI-COOK-X402',
     supply: 50,
-    imageUrl: 'https://images.unsplash.com/photo-1552611052-33e04de081de?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xChefJoy'
   },
   {
@@ -26,7 +26,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Chang Puak Gate',
     price: 35,
     unit: 'USDC/person',
-    imageUrl: 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xNightBite'
   },
   {
@@ -38,7 +38,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Mae Rim Valley',
     price: 55,
     unit: 'USDC/workshop',
-    imageUrl: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xTeaMaster'
   },
 
@@ -52,7 +52,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Nimman Road',
     price: 25,
     unit: 'USDC/hr',
-    imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xZenMaster'
   },
 
@@ -66,7 +66,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Nimman Hub',
     price: 20,
     unit: 'USDC/hr',
-    imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xThaiTalk'
   },
   {
@@ -78,7 +78,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Bo Sang Village',
     price: 40,
     unit: 'USDC/session',
-    imageUrl: 'https://images.unsplash.com/photo-1601058268499-e52658b8bb88?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xWeaver'
   },
 
@@ -92,7 +92,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Doi Inthanon',
     price: 120,
     unit: 'USDC/person',
-    imageUrl: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xGuide'
   },
   {
@@ -104,7 +104,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Mae Taeng District',
     price: 40,
     unit: 'USDC/person',
-    imageUrl: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xStickyDiver'
   },
   {
@@ -130,7 +130,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Remote / Nimman',
     price: 800,
     unit: 'USDC/audit',
-    imageUrl: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xDevNode'
   },
   {
@@ -142,7 +142,7 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Remote',
     price: 450,
     unit: 'USDC/project',
-    imageUrl: 'https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xDesignFlow'
   },
   {
@@ -154,8 +154,132 @@ export const MOCK_SERVICES: Service[] = [
     location: 'Nimman Area',
     price: 30,
     unit: 'USDC/hr',
-    imageUrl: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=1200&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop',
     avatarUrl: 'https://i.pravatar.cc/150?u=0xPodHost'
+  },
+  
+  // --- NEW SERVICES (清迈本地生活) ---
+  {
+    id: 's19',
+    sellerId: '0xMuayThaiPro',
+    title: 'Traditional Muay Thai Training',
+    description: 'Authentic Thai boxing training with former professional fighters. Learn proper technique, conditioning, and respect for the art in a traditional gym setting.',
+    category: 'Wellness',
+    location: 'Suthep Road',
+    price: 30,
+    unit: 'USDC/session',
+    tokenAddress: '0xMUAYTHAI-X402',
+    supply: 100,
+    imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xMuayThaiPro'
+  },
+  {
+    id: 's20',
+    sellerId: '0xTempleTour',
+    title: 'Sacred Temple Photography Tour',
+    description: 'Capture stunning photos of Chiang Mai\'s ancient temples at golden hour. Learn composition techniques while visiting Wat Phra That Doi Suthep, Wat Chedi Luang, and hidden gems.',
+    category: 'Tours',
+    location: 'Old City & Doi Suthep',
+    price: 65,
+    unit: 'USDC/person',
+    imageUrl: 'https://images.unsplash.com/photo-1528181304800-259b08848526?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xTempleTour'
+  },
+  {
+    id: 's21',
+    sellerId: '0xLannaDance',
+    title: 'Lanna Traditional Dance Class',
+    description: 'Learn graceful Northern Thai dance movements and cultural stories. Perfect for understanding Lanna heritage through movement and music.',
+    category: 'Education',
+    location: 'Cultural Center, Old City',
+    price: 25,
+    unit: 'USDC/class',
+    imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xLannaDance'
+  },
+  {
+    id: 's22',
+    sellerId: '0xFarmToTable',
+    title: 'Organic Farm Cooking Experience',
+    description: 'Harvest fresh vegetables from an organic farm, then cook a complete meal using traditional methods. Includes farm tour and zero-waste cooking techniques.',
+    category: 'Culinary',
+    location: 'Mae Rim Organic Farm',
+    price: 50,
+    unit: 'USDC/person',
+    imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xFarmToTable'
+  },
+  {
+    id: 's23',
+    sellerId: '0xScooterRent',
+    title: 'Scooter Rental with Local Guide',
+    description: 'Rent a reliable scooter with full insurance and get a personalized route map to explore Chiang Mai\'s best spots. Includes safety briefing and emergency support.',
+    category: 'Tours',
+    location: 'Nimman Area',
+    price: 15,
+    unit: 'USDC/day',
+    imageUrl: 'https://images.unsplash.com/photo-1558980664-1db506751c6c?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xScooterRent'
+  },
+  {
+    id: 's24',
+    sellerId: '0xHerbalSpa',
+    title: 'Traditional Herbal Compress Massage',
+    description: 'Experience authentic Thai herbal ball massage using locally grown herbs. Relieves muscle tension and promotes deep relaxation in a serene garden setting.',
+    category: 'Wellness',
+    location: 'Spa Garden, Old City',
+    price: 40,
+    unit: 'USDC/session',
+    imageUrl: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xHerbalSpa'
+  },
+  {
+    id: 's25',
+    sellerId: '0xCeramicArt',
+    title: 'Celadon Pottery Workshop',
+    description: 'Create your own celadon ceramic piece using traditional Lanna techniques. Learn glazing and firing methods from master potters in Bo Sang village.',
+    category: 'Education',
+    location: 'Bo Sang Ceramic Village',
+    price: 45,
+    unit: 'USDC/workshop',
+    imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xCeramicArt'
+  },
+  {
+    id: 's26',
+    sellerId: '0xCoffeeFarm',
+    title: 'Highland Coffee Plantation Tour',
+    description: 'Visit a mountain coffee plantation, learn about Arabica cultivation, and enjoy a cupping session with locally roasted beans. Includes transportation and lunch.',
+    category: 'Culinary',
+    location: 'Doi Inthanon Area',
+    price: 75,
+    unit: 'USDC/person',
+    imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xCoffeeFarm'
+  },
+  {
+    id: 's27',
+    sellerId: '0xNomadHub',
+    title: 'Co-working Space Day Pass',
+    description: 'High-speed WiFi, ergonomic chairs, and quiet zones in the heart of Nimman. Perfect for digital nomads. Includes free coffee and meeting room access.',
+    category: 'Digital',
+    location: 'Nimman Road',
+    price: 12,
+    unit: 'USDC/day',
+    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xNomadHub'
+  },
+  {
+    id: 's28',
+    sellerId: '0xRiverRaft',
+    title: 'Mae Taeng River Rafting',
+    description: 'White water rafting adventure through jungle gorges. Professional guides, safety equipment included. Suitable for beginners and experienced rafters.',
+    category: 'Tours',
+    location: 'Mae Taeng River',
+    price: 85,
+    unit: 'USDC/person',
+    imageUrl: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?q=80&w=1200&auto=format&fit=crop',
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xRiverRaft'
   }
 ];
 
@@ -269,27 +393,168 @@ export const MOCK_DEMANDS: Demand[] = [
     budget: 300,
     timestamp: Date.now() - 3600000,
     avatarUrl: 'https://i.pravatar.cc/150?u=0xCoffeeAddict'
+  },
+  
+  // --- NEW DEMANDS (清迈本地生活) ---
+  {
+    id: 'd15',
+    buyerId: '0xYogaRetreat',
+    title: 'Weekend Yoga Retreat Organizer',
+    description: 'Looking for someone to organize a 2-day yoga retreat for 15 people. Need venue booking, meal planning, and activity coordination.',
+    category: 'Wellness',
+    location: 'Mae Rim Area',
+    budget: 800,
+    timestamp: Date.now() - 5400000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xYogaRetreat'
+  },
+  {
+    id: 'd16',
+    buyerId: '0xPhotoShoot',
+    title: 'Professional Portrait Photographer',
+    description: 'Need a photographer for a couple\'s engagement photoshoot at Doi Suthep temple. Prefer someone who knows the best angles and lighting.',
+    category: 'Digital',
+    location: 'Doi Suthep',
+    budget: 180,
+    timestamp: Date.now() - 9000000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xPhotoShoot'
+  },
+  {
+    id: 'd17',
+    buyerId: '0xLanguageExchange',
+    title: 'Thai-English Language Exchange Partner',
+    description: 'Looking for a native Thai speaker for weekly language exchange. I can teach English in return. Casual conversation preferred.',
+    category: 'Education',
+    location: 'Nimman or Old City',
+    budget: 0,
+    timestamp: Date.now() - 1800000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xLanguageExchange'
+  },
+  {
+    id: 'd18',
+    buyerId: '0xMarketGuide',
+    title: 'Sunday Walking Street Market Guide',
+    description: 'Need a local guide to show me the best stalls at Sunday Walking Street. Want to find authentic handicrafts and avoid tourist traps.',
+    category: 'Tours',
+    location: 'Sunday Walking Street',
+    budget: 50,
+    timestamp: Date.now() - 7200000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xMarketGuide'
+  },
+  {
+    id: 'd19',
+    buyerId: '0xVeganChef',
+    title: 'Vegan Meal Prep Service',
+    description: 'Looking for a chef to prepare 5 days of healthy vegan meals. Must be organic and locally sourced. Delivery to Nimman area.',
+    category: 'Culinary',
+    location: 'Nimman Area',
+    budget: 200,
+    timestamp: Date.now() - 10800000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xVeganChef'
+  },
+  {
+    id: 'd20',
+    buyerId: '0xMountainBike',
+    title: 'Mountain Biking Guide for Doi Suthep',
+    description: 'Experienced mountain biker needed to guide me on Doi Suthep trails. I have my own bike, just need route guidance and safety tips.',
+    category: 'Tours',
+    location: 'Doi Suthep',
+    budget: 80,
+    timestamp: Date.now() - 3600000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xMountainBike'
+  },
+  {
+    id: 'd21',
+    buyerId: '0xMeditationRetreat',
+    title: 'Silent Meditation Retreat Facilitator',
+    description: 'Seeking a meditation teacher to lead a 3-day silent retreat for 8 participants. Need someone experienced in Vipassana or mindfulness practices.',
+    category: 'Wellness',
+    location: 'Mae Rim or Doi Suthep',
+    budget: 600,
+    timestamp: Date.now() - 14400000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xMeditationRetreat'
+  },
+  {
+    id: 'd22',
+    buyerId: '0xWebDev',
+    title: 'WordPress Website Developer',
+    description: 'Need a developer to create a simple WordPress site for my local business. Must be able to work in person and understand Thai business requirements.',
+    category: 'Digital',
+    location: 'Chiang Mai City',
+    budget: 500,
+    timestamp: Date.now() - 21600000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xWebDev'
+  },
+  {
+    id: 'd23',
+    buyerId: '0xSilverSmith',
+    title: 'Silver Jewelry Making Class',
+    description: 'Want to learn traditional Lanna silver smithing techniques. Looking for a master craftsman who can teach in English or with translation.',
+    category: 'Education',
+    location: 'Wualai Road (Silver Street)',
+    budget: 120,
+    timestamp: Date.now() - 5400000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xSilverSmith'
+  },
+  {
+    id: 'd24',
+    buyerId: '0xStreetFood',
+    title: 'Authentic Street Food Tour Guide',
+    description: 'Looking for a foodie guide to take me to the best hidden street food spots. Must know where locals eat, not tourist places. Evening tour preferred.',
+    category: 'Culinary',
+    location: 'Various locations in CM',
+    budget: 70,
+    timestamp: Date.now() - 9000000,
+    avatarUrl: 'https://i.pravatar.cc/150?u=0xStreetFood'
   }
 ];
 
 export const CATEGORIES = ['All', 'Culinary', 'Wellness', 'Education', 'Tours', 'Digital'];
 
 export const SYSTEM_INSTRUCTIONS = {
-  OFFER_AGENT: `You are the Offer Agent for LocalLife. Your goal is to help local service providers tokenize their skills and list them on the marketplace.
-  
-  Interact with the user to gather the following details about their service:
-  1. Title (What is the service?)
-  2. Category (Culinary, Wellness, Education, Tours, or Digital)
-  3. Description (Briefly describe what is offered)
-  4. Location (Where does it happen?)
-  5. Price (Number only)
-  6. Unit (e.g., USDC/hr, USDC/session, USDC/person)
+  OFFER_AGENT: `You are the Offer Agent for LocalLife, a friendly and conversational assistant helping local service providers in Chiang Mai tokenize their skills.
 
-  Be helpful, encouraging, and use "Sawatdee Krub/Ka" occasionally.
+  CONVERSATION STYLE:
+  - Talk naturally, like a helpful friend, not a form-filling robot
+  - Ask one question at a time, in a conversational way
+  - Show genuine interest in their service
+  - Use "Sawatdee Krub/Ka" occasionally to add local warmth
+  - If they mention something interesting, acknowledge it before moving on
+  - Make the conversation feel like a natural chat, not an interrogation
+
+  INFORMATION GATHERING PROCESS:
+  Guide the user through these topics naturally through conversation:
+  1. **What service they offer** - Start with: "What kind of service would you like to offer on LocalLife?" or "Tell me about what you do!"
+  2. **Category** - Once you know the service, naturally suggest the category: "That sounds like it could be [Culinary/Wellness/Education/Tours/Digital]. Does that sound right?"
+  3. **Description** - Ask: "Can you tell me more about what makes your service special?" or "What would someone experience in your service?"
+  4. **Location** - Ask: "Where in Chiang Mai will this service take place?" or "Are you based in Old City, Nimman, or another area?"
+  5. **Price** - Ask: "What would you like to charge for this?" or "How much do you think is fair for this service?"
+  6. **Unit** - Ask: "Is that per hour, per session, per person, or something else?"
+
+  PREVIEW AND CONFIRMATION:
+  Once you have collected ALL the necessary information, create a PREVIEW first:
+  - Summarize what you've learned in a friendly way
+  - Show them a preview of their service card
+  - Ask: "Does this look good to you? Would you like to make any changes?"
+  - Only create the final card after they confirm
+
+  JSON OUTPUT FORMAT:
+  When you have all information, first show a preview by outputting this JSON block:
   
-  CRITICAL INSTRUCTION:
-  Once you have collected ALL the necessary information (Title, Category, Description, Location, Price, Unit), you MUST output the structured data in a JSON block at the very end of your response.
-  The format MUST be exactly as follows:
+  @@@JSON_START@@@
+  {
+    "action": "preview_service",
+    "data": {
+      "title": "Service Title",
+      "category": "Category",
+      "description": "Description",
+      "location": "Location",
+      "price": 100,
+      "unit": "USDC/hr"
+    }
+  }
+  @@@JSON_END@@@
+  
+  After the user confirms (says "yes", "looks good", "create it", etc.), output this JSON block:
   
   @@@JSON_START@@@
   {
@@ -305,23 +570,64 @@ export const SYSTEM_INSTRUCTIONS = {
   }
   @@@JSON_END@@@
   
-  Do not output this JSON block until you have all the fields. If information is missing, ask the user for it.`,
+  IMPORTANT:
+  - Use "preview_service" action first to show a preview
+  - Wait for user confirmation before using "create_service" action
+  - If information is missing, continue the conversation naturally
+  - Don't rush - let the conversation flow naturally`,
 
-  EXPLORE_AGENT: `You are the Explore Agent for LocalLife. Your goal is to help travelers and buyers find services or post their needs (Demands).
-  
-  Interact with the user to understand what they are looking for. If they can't find an existing service, suggest creating a "Demand" card.
-  To create a Demand card, gather the following details:
-  1. Title (What do you need?)
-  2. Category (Culinary, Wellness, Education, Tours, or Digital)
-  3. Description (Details of the request)
-  4. Location (Where do you need it?)
-  5. Budget (Maximum price in USDC)
+  EXPLORE_AGENT: `You are the Explore Agent for LocalLife, a friendly and helpful assistant for travelers and buyers in Chiang Mai.
 
-  Be friendly and helpful.
+  CRITICAL RULES:
+  1. You can ONLY recommend services and demands that are provided in the context below. Never suggest services or demands that are not explicitly listed.
+  2. If no matching services or demands are found, you MUST suggest the user to create a Demand card to express their need.
+  3. Always prioritize recommending existing services/demands from the platform before suggesting creating new ones.
+
+  CONVERSATION STYLE:
+  - Talk naturally and warmly, like a local friend helping out
+  - Show genuine interest in what they're looking for
+  - If you find matching services/demands, present them enthusiastically
+  - If nothing matches, guide them to create a demand naturally
+  - Use "Sawatdee Krub/Ka" occasionally
+  - Make suggestions feel helpful, not pushy
+
+  SEARCH AND RECOMMENDATION:
+  First, check the provided context for matching services or demands. If found:
+  - Present them in a friendly way: "I found some great options for you!"
+  - Highlight what makes each option special
+  - Ask if they'd like more details or if they want to create their own demand instead
+
+  If nothing matches, guide them to create a Demand card through natural conversation:
+  1. **What they need** - Start with: "I don't see anything matching that right now. Can you tell me more about what you're looking for?"
+  2. **Category** - Once you understand, suggest: "That sounds like it could be [Culinary/Wellness/Education/Tours/Digital]. Does that fit?"
+  3. **Description** - Ask: "What specific details should service providers know about your request?"
+  4. **Location** - Ask: "Where in Chiang Mai do you need this?"
+  5. **Budget** - Ask: "What's your budget for this? (in USDC)"
+
+  PREVIEW AND CONFIRMATION:
+  Once you have all information:
+  - Summarize what you've learned
+  - Show them a preview of their demand card
+  - Ask: "Does this look right? Want to adjust anything?"
+  - Only create the final card after they confirm
+
+  JSON OUTPUT FORMAT:
+  When you have all information, first show a preview by outputting this JSON block:
   
-  CRITICAL INSTRUCTION:
-  Once you have collected ALL the necessary information for a Demand (Title, Category, Description, Location, Budget), you MUST output the structured data in a JSON block at the very end of your response.
-  The format MUST be exactly as follows:
+  @@@JSON_START@@@
+  {
+    "action": "preview_demand",
+    "data": {
+      "title": "Demand Title",
+      "category": "Category",
+      "description": "Description",
+      "location": "Location",
+      "budget": 100
+    }
+  }
+  @@@JSON_END@@@
+  
+  After the user confirms (says "yes", "looks good", "post it", etc.), output this JSON block:
   
   @@@JSON_START@@@
   {
@@ -335,6 +641,10 @@ export const SYSTEM_INSTRUCTIONS = {
     }
   }
   @@@JSON_END@@@
-
-  Do not output this JSON block until you have all the fields. If information is missing, ask the user for it.`
+  
+  IMPORTANT:
+  - Use "preview_demand" action first to show a preview
+  - Wait for user confirmation before using "create_demand" action
+  - Always mention you're searching within the LocalLife platform only
+  - Keep the conversation natural and friendly`
 };
