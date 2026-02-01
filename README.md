@@ -357,4 +357,4 @@ LocalLife 坚持 Web3 的核心精神：
 
 ---
 
-*Built for ETHGlobal 2026*
+*Built for ETHChiangmai 2026*
