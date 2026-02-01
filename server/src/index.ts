@@ -5,6 +5,7 @@ import { agentRouter } from './routes/agent';
 import { servicesRouter } from './routes/services';
 import { demandsRouter } from './routes/demands';
 import { ordersRouter } from './routes/orders';
+import { adminRouter } from './routes/admin';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/v1/agent', agentRouter);
 app.use('/api/v1/services', servicesRouter);
 app.use('/api/v1/demands', demandsRouter);
 app.use('/api/v1/orders', ordersRouter);
+app.use('/api/v1/admin', adminRouter);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

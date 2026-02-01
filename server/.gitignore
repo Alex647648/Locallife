@@ -22,3 +22,6 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Data files (persisted locally, not committed)
+data/

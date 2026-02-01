@@ -1,11 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { Service } from '../types';
 import { z } from 'zod';
+import { dataStore } from '../services/dataStore';
 
 export const servicesRouter = Router();
-
-// In-memory storage (in production, use database)
-const services: Service[] = [];
 
 // Validation schemas
 const createServiceSchema = z.object({
@@ -18,8 +16,10 @@ const createServiceSchema = z.object({
   sellerId: z.string().min(1),
   tokenAddress: z.string().optional(),
   supply: z.number().optional(),
-  imageUrl: z.string().url().optional(),
-  avatarUrl: z.string().url().optional()
+  imageUrl: z.string().url().optional().or(z.literal('')),
+  avatarUrl: z.string().url().optional().or(z.literal('')),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional()
 });
 
 // GET /api/v1/services - Get all services with optional filtering
@@ -27,24 +27,16 @@ servicesRouter.get('/', (req: Request, res: Response) => {
   try {
     const { category, location } = req.query;
     
-    let filteredServices = [...services];
-    
-    if (category && typeof category === 'string') {
-      filteredServices = filteredServices.filter(s => s.category === category);
-    }
-    
-    if (location && typeof location === 'string') {
-      filteredServices = filteredServices.filter(s => 
-        s.location.toLowerCase().includes(location.toLowerCase())
-      );
-    }
+    const services = dataStore.getServices({
+      category: category as string | undefined,
+      location: location as string | undefined
+    });
     
     res.json({
       success: true,
-      data: filteredServices,
+      data: services,
       meta: {
-        total: filteredServices.length,
-        filtered: services.length !== filteredServices.length
+        total: services.length
       }
     });
   } catch (error: any) {
@@ -60,7 +52,7 @@ servicesRouter.get('/', (req: Request, res: Response) => {
 servicesRouter.get('/:id', (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const service = services.find(s => s.id === id);
+    const service = dataStore.getServiceById(id);
     
     if (!service) {
       return res.status(404).json({
@@ -100,21 +92,47 @@ servicesRouter.post('/', (req: Request, res: Response) => {
     const serviceData = validationResult.data;
     const newService: Service = {
       id: `s-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      ...serviceData,
-      timestamp: Date.now()
-    } as Service;
+      ...serviceData
+    };
     
-    services.push(newService);
+    const created = dataStore.addService(newService);
     
     res.status(201).json({
       success: true,
-      data: newService
+      data: created
     });
   } catch (error: any) {
     res.status(500).json({
       success: false,
       error: 'INTERNAL_ERROR',
       message: error.message || 'Failed to create service'
+    });
+  }
+});
+
+// DELETE /api/v1/services/:id - Delete a service
+servicesRouter.delete('/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleted = dataStore.deleteService(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'NOT_FOUND',
+        message: `Service with id ${id} not found`
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Service deleted successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: error.message || 'Failed to delete service'
     });
   }
 });
