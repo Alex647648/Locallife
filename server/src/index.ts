@@ -6,6 +6,9 @@ import { servicesRouter } from './routes/services';
 import { demandsRouter } from './routes/demands';
 import { ordersRouter } from './routes/orders';
 import { adminRouter } from './routes/admin';
+import { erc8004Router } from './routes/erc8004';
+import { erc8004WriteRouter } from './routes/erc8004Write';
+import { hostedJsonRouter } from './routes/hostedJson';
 
 dotenv.config();
 
@@ -30,6 +33,9 @@ app.use('/api/v1/services', servicesRouter);
 app.use('/api/v1/demands', demandsRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/erc8004', erc8004Router);
+app.use('/api/v1/erc8004', erc8004WriteRouter);
+app.use('/', hostedJsonRouter);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -23,6 +23,9 @@ import X402Standard from './components/X402Standard';
 import SmartEscrow from './components/SmartEscrow';
 import Home from './components/Home';
 import BackgroundEffect from './components/BackgroundEffect';
+import { useBooking } from './hooks/useBooking';
+import AgentRegistrationPanel from './components/AgentRegistrationPanel';
+import FeedbackPanel from './components/FeedbackPanel';
 import { DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { useAccount } from 'wagmi';
 
@@ -46,6 +49,9 @@ const App: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   
   const [focusedItem, setFocusedItem] = useState<any | null>(null);
+
+  const booking = useBooking();
+  const [feedbackTarget, setFeedbackTarget] = useState<{ orderId: string; agentId?: string } | null>(null);
 
   const [buyerMessages, setBuyerMessages] = useState<ChatMessage[]>([
     { id: '1', role: 'assistant', content: 'So nice to see you here! What do you want to explore today?', timestamp: Date.now() }
@@ -76,6 +82,20 @@ const App: React.FC = () => {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (booking.bookingResult) {
+      setFeedbackTarget({ orderId: booking.bookingResult.orderId });
+      booking.reset();
+    }
+  }, [booking.bookingResult]);
+
+  useEffect(() => {
+    if (booking.error) {
+      alert(`Booking failed: ${booking.error}`);
+      booking.reset();
+    }
+  }, [booking.error]);
 
   // Open Dynamic's wallet connection modal
   const connectWallet = () => setShowAuthFlow(true);
@@ -509,9 +529,7 @@ const App: React.FC = () => {
   const handleAction = async (item: any) => {
     if (!isConnected) { setShowAuthFlow(true); return; }
     if (role === UserRole.BUYER) {
-      const newOrder = await apiService.createOrder(item.id, address || '0xCurrentBuyer');
-      setOrders(prev => [...prev, newOrder]);
-      alert(`Booking initiated! Smart Escrow created for: ${item.title}`);
+      await booking.book(item.id, item.price || 0);
     } else {
       alert(`Response sent to: ${item.title}`);
     }
@@ -545,7 +563,12 @@ const App: React.FC = () => {
       case 'explore': 
         return <Marketplace services={services} onBook={handleAction} onLocate={handleLocate} />;
       case 'offer': 
-        return <DemandsBoard demands={demands} onAccept={handleAction} onLocate={handleLocate} />;
+        return (
+          <div className="space-y-12">
+            <AgentRegistrationPanel />
+            <DemandsBoard demands={demands} onAccept={handleAction} onLocate={handleLocate} />
+          </div>
+        );
       case 'docs': 
         return <Documentation />;
       case 'x402': 
@@ -560,6 +583,26 @@ const App: React.FC = () => {
   return (
     <div className="relative selection:bg-blue-100 selection:text-blue-900">
       <BackgroundEffect />
+      {booking.isBooking && (
+        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-10 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-bold text-slate-900">Processing Payment...</p>
+            <p className="text-xs text-slate-400 text-center">Signing x402 payment. Please confirm in your wallet.</p>
+          </div>
+        </div>
+      )}
+      {feedbackTarget && (
+        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-lg w-full">
+            <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 mb-4">
+              <h3 className="text-lg font-bold text-blue-900">Booking Confirmed!</h3>
+              <p className="text-sm text-blue-700 mt-1">Order <span className="font-mono font-bold">{feedbackTarget.orderId}</span> paid.</p>
+            </div>
+            <FeedbackPanel orderId={feedbackTarget.orderId} agentId={feedbackTarget.agentId} onDismiss={() => setFeedbackTarget(null)} />
+          </div>
+        </div>
+      )}
 
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-2xl border-b border-black/5 px-8 h-20 flex items-center justify-between">
         <div className="flex items-center gap-12">
