@@ -7,7 +7,6 @@ import CardPreview from './CardPreview';
 interface ChatWindowProps {
   messages: ChatMessage[];
   onSendMessage: (text: string, modelId: string, apiKey?: string) => void;
-  onConfirmCard?: (type: 'service' | 'demand', data: Partial<Service> | Partial<Demand>) => void;
   isLoading: boolean;
   role: UserRole;
   onRoleChange: (role: UserRole) => void;
@@ -18,7 +17,6 @@ interface ChatWindowProps {
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
   messages, 
   onSendMessage,
-  onConfirmCard,
   isLoading, 
   role,
   onRoleChange,
@@ -79,9 +77,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   const handleConfirmCard = () => {
-    if (previewCard && onConfirmCard) {
-      onConfirmCard(previewCard.type, previewCard.data);
-      // 发送确认消息给AI
+    if (previewCard) {
+      // 只发送确认消息给AI，让AI返回创建动作，避免重复创建
       const confirmText = previewCard.type === 'service' 
         ? 'Yes, this looks good! Please create the service card.'
         : 'Yes, this looks good! Please create the demand card.';
