@@ -110,7 +110,12 @@ const AgentChatModal: React.FC<AgentChatModalProps> = ({
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length === 0 && !isLoading && (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center justify-center h-full gap-3 py-8">
+              <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center">
+                <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
               <p className="text-slate-400 text-sm">Ask me anything about this service!</p>
             </div>
           )}
@@ -159,23 +164,23 @@ const AgentChatModal: React.FC<AgentChatModalProps> = ({
         </div>
 
         {/* Input Area */}
-        <form onSubmit={handleSubmit} className="p-4 bg-white/40 border-t border-black/5">
-          <div className="flex gap-2">
+        <form onSubmit={handleSubmit} className="p-4 bg-white/20 border-t border-black/5">
+          <div className="relative flex items-end">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Ask about this service..."
-              className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 pr-12 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/30 transition-all placeholder:text-slate-400"
               disabled={isLoading}
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || isLoading}
-              className="px-4 py-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-black/5"
+              className="absolute right-2 bottom-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-200 text-white w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-md"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </button>
           </div>
