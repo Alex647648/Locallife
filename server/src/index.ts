@@ -11,7 +11,8 @@ import { erc8004Router } from './routes/erc8004';
 import { erc8004WriteRouter } from './routes/erc8004Write';
 import { hostedJsonRouter } from './routes/hostedJson';
 
-dotenv.config();
+// Load server-specific .env using __dirname so it works regardless of CWD
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;

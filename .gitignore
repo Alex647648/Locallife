@@ -30,6 +30,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Windows reserved device names
+nul
+
 # Agent/orchestration artifacts (not project code)
 .beads/
 .sisyphus/
