@@ -8,6 +8,7 @@ interface MapModuleProps {
   demands: Demand[];
   onAction: (item: any) => void;
   focusItem?: any | null; // New prop to handle external focus requests
+  currentUserAddress?: string; // Current user's wallet address to highlight their services
 }
 
 // Generate fallback coordinates for items without real lat/lng
@@ -55,7 +56,7 @@ export const getStablePos = (item: { id: string; category: string; lat?: number;
   return { ...fallback, isReal: false };
 };
 
-const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focusItem }) => {
+const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focusItem, currentUserAddress }) => {
   const [viewType, setViewType] = useState<'all' | 'services' | 'demands'>('all');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -110,16 +111,34 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
     });
 
     filtered.forEach(item => {
-      const color = item.type === 'service' ? '#2563eb' : '#10b981';
+      // Color logic: orange for user's own services, blue for other services, green for demands
+      const isOwnService = item.type === 'service' && 
+                           currentUserAddress && 
+                           (item as any).sellerId?.toLowerCase() === currentUserAddress.toLowerCase();
+      const color = item.type === 'demand' 
+        ? '#10b981'  // Green for demands
+        : isOwnService 
+          ? '#f97316'  // Orange for own services
+          : '#2563eb'; // Blue for other services
+      
       const isReal = (item as any).isReal;
       // Real coordinates get a solid marker, generated ones get a ring
+      // Own services get a slightly larger marker with a pulsing ring
+      const size = isOwnService ? 20 : (isReal ? 16 : 14);
+      const anchor = isOwnService ? 10 : (isReal ? 8 : 7);
+      
       const customIcon = L.divIcon({
         className: 'custom-div-icon',
-        html: isReal 
-          ? `<div style="background-color: ${color}; width: 16px; height: 16px; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer;"></div>`
-          : `<div style="background-color: transparent; width: 14px; height: 14px; border: 3px solid ${color}; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; opacity: 0.7;"></div>`,
-        iconSize: isReal ? [16, 16] : [14, 14],
-        iconAnchor: isReal ? [8, 8] : [7, 7]
+        html: isOwnService
+          ? `<div style="position: relative;">
+               <div style="position: absolute; inset: -4px; background-color: ${color}; border-radius: 50%; opacity: 0.3; animation: pulse 2s infinite;"></div>
+               <div style="background-color: ${color}; width: ${size}px; height: ${size}px; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(249,115,22,0.5); cursor: pointer;"></div>
+             </div>`
+          : isReal 
+            ? `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer;"></div>`
+            : `<div style="background-color: transparent; width: ${size}px; height: ${size}px; border: 3px solid ${color}; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; opacity: 0.7;"></div>`,
+        iconSize: [size, size],
+        iconAnchor: [anchor, anchor]
       });
 
       const marker = L.marker([item.lat, item.lng], { icon: customIcon })
@@ -150,6 +169,13 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
 
   return (
     <div id="map-registry" className="relative w-full h-[640px] bg-white border border-slate-200 rounded-[3.5rem] shadow-2xl overflow-hidden group">
+      {/* CSS for marker pulse animation */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.3; }
+          50% { transform: scale(1.5); opacity: 0.1; }
+        }
+      `}</style>
       <div ref={mapRef} className="absolute inset-0 z-0 bg-slate-50"></div>
 
       <div className="absolute top-8 right-8 z-20 pointer-events-none">
@@ -173,11 +199,22 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
          })}
       </div>
 
-      {selectedItem && (
-        <div className="absolute bottom-8 right-8 w-80 bg-white/98 backdrop-blur-3xl border border-white/50 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] p-7 z-30 animate-in slide-in-from-right-8 duration-500">
+      {selectedItem && (() => {
+        const isOwnService = selectedItem.type === 'service' && 
+                             currentUserAddress && 
+                             selectedItem.sellerId?.toLowerCase() === currentUserAddress.toLowerCase();
+        return (
+        <div className={`absolute bottom-8 right-8 w-80 bg-white/98 backdrop-blur-3xl border rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] p-7 z-30 animate-in slide-in-from-right-8 duration-500 ${isOwnService ? 'border-orange-200 ring-2 ring-orange-100' : 'border-white/50'}`}>
            <button onClick={() => setSelectedItem(null)} className="absolute top-5 right-5 text-slate-300 hover:text-slate-900 transition-colors p-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
-           <div className="flex items-center gap-3 mb-5">
-              <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg ${selectedItem.type === 'service' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>{selectedItem.type === 'service' ? 'X402 Asset' : 'Local Intent'}</span>
+           <div className="flex items-center gap-3 mb-5 flex-wrap">
+              {isOwnService && (
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg bg-orange-50 text-orange-600 border border-orange-200">My Service</span>
+              )}
+              <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg ${
+                selectedItem.type === 'service' 
+                  ? (isOwnService ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600') 
+                  : 'bg-emerald-50 text-emerald-600'
+              }`}>{selectedItem.type === 'service' ? 'X402 Asset' : 'Local Intent'}</span>
               <div className="w-1 h-1 rounded-full bg-slate-200"></div>
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID {selectedItem.id}</span>
            </div>
@@ -185,10 +222,11 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 mb-8 uppercase tracking-[0.1em]"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{selectedItem.location}</div>
            <div className="flex items-center justify-between pt-6 border-t border-slate-100">
               <div className="flex flex-col"><div className="flex items-baseline gap-1"><span className="text-2xl font-black text-slate-900">{selectedItem.price || selectedItem.budget}</span><span className="text-[10px] font-black text-slate-400 uppercase">USDC</span></div><span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">Escrow Secured</span></div>
-              <button onClick={() => onAction(selectedItem)} className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] shadow-xl shadow-slate-900/10 hover:bg-blue-600 transition-all active:scale-95">{selectedItem.type === 'service' ? 'Interact' : 'Fulfill'}</button>
+              <button onClick={() => onAction(selectedItem)} className={`px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] shadow-xl transition-all active:scale-95 ${isOwnService ? 'bg-orange-500 text-white shadow-orange-500/20 hover:bg-orange-600' : 'bg-slate-900 text-white shadow-slate-900/10 hover:bg-blue-600'}`}>{selectedItem.type === 'service' ? 'Interact' : 'Fulfill'}</button>
            </div>
         </div>
-      )}
+        );
+      })()}
 
       {!selectedItem && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/40 backdrop-blur-md px-8 py-3 rounded-full border border-white/20 pointer-events-none group-hover:opacity-0 transition-opacity duration-500">

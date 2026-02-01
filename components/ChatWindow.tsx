@@ -9,6 +9,7 @@ interface ChatWindowProps {
   messages: ChatMessage[];
   onSendMessage: (text: string, modelId: string, apiKey?: string) => void;
   onConfirmCard?: (type: 'service' | 'demand', data: Partial<Service> | Partial<Demand>) => void;
+  onLocate?: (item: Service) => void;
   isLoading: boolean;
   role: UserRole;
   onRoleChange: (role: UserRole) => void;
@@ -20,6 +21,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   messages, 
   onSendMessage,
   onConfirmCard,
+  onLocate,
   isLoading, 
   role,
   onRoleChange,
@@ -256,7 +258,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                       <ServiceCard
                         service={service}
                         onSelect={() => {}}
-                        onLocate={() => {}}
+                        onLocate={onLocate ? () => onLocate(service) : undefined}
                       />
                     </div>
                   ))}
