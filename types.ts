@@ -68,3 +68,7 @@ export interface AgentResponse {
   action?: 'onboard' | 'demand' | 'confirm_payment' | 'confirm_complete';
   data?: any;
 }
+
+export interface EIP1193Provider {
+  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
+}
