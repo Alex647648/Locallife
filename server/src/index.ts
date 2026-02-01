@@ -20,7 +20,8 @@ const app = express();
 // ⚠️ CRITICAL for Render deployment: Service MUST listen on process.env.PORT
 // Render automatically sets PORT environment variable
 // If PORT is not set (local dev), fallback to 3001
-const PORT = process.env.PORT || 3001;
+// process.env.PORT is always a string, so we need to parse it to a number
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 // Middleware
 // CORS configuration: For monolith deployment (same origin), allow all origins
