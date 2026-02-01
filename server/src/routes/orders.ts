@@ -53,16 +53,16 @@ ordersRouter.post('/', (req: Request, res: Response) => {
   try {
     const validationResult = createOrderSchema.safeParse(req.body);
     
-    if (!validationResult.success) {
-      return res.status(422).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid input data',
-        details: validationResult.error.errors
-      });
-    }
-    
-    const orderData = validationResult.data;
+     if (!validationResult.success) {
+       return res.status(422).json({
+         success: false,
+         error: 'VALIDATION_ERROR',
+         message: 'Invalid input data',
+         details: validationResult.error.issues
+       });
+     }
+     
+     const orderData = validationResult.data;
     const newOrder: Order = {
       id: `ord-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       serviceId: orderData.serviceId,
@@ -94,14 +94,14 @@ ordersRouter.patch('/:id/status', (req: Request, res: Response) => {
     const { id } = req.params;
     const validationResult = updateOrderStatusSchema.safeParse(req.body);
     
-    if (!validationResult.success) {
-      return res.status(422).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid status',
-        details: validationResult.error.errors
-      });
-    }
+     if (!validationResult.success) {
+       return res.status(422).json({
+         success: false,
+         error: 'VALIDATION_ERROR',
+         message: 'Invalid status',
+         details: validationResult.error.issues
+       });
+     }
     
     const order = orders.find(o => o.id === id);
     if (!order) {

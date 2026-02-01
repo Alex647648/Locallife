@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { agentRouter } from './routes/agent';
 import { servicesRouter } from './routes/services';
 import { demandsRouter } from './routes/demands';
@@ -36,6 +37,15 @@ app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/erc8004', erc8004Router);
 app.use('/api/v1/erc8004', erc8004WriteRouter);
 app.use('/', hostedJsonRouter);
+
+// --- Serve frontend static files (production monolith) ---
+const frontendDistPath = path.join(__dirname, '../../dist');
+app.use(express.static(frontendDistPath));
+
+// SPA catch-all: any non-API, non-static route returns index.html
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
