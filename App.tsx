@@ -99,17 +99,11 @@ const App: React.FC = () => {
     if (role === UserRole.BUYER) {
       // 买家模式：检索服务和需求
       try {
-        // 获取所有服务和需求（如果API返回空，使用本地MOCK数据作为后备）
-        let allServices = await apiService.getServices();
-        let allDemands = await apiService.getDemands();
+        // 获取所有服务和需求
+        const allServices = await apiService.getServices();
+        const allDemands = await apiService.getDemands();
         
-        // 如果API返回空数组，使用本地MOCK数据
-        if (allServices.length === 0) {
-          allServices = MOCK_SERVICES;
-        }
-        if (allDemands.length === 0) {
-          allDemands = MOCK_DEMANDS;
-        }
+        console.log(`[Search] Fetched ${allServices.length} services, ${allDemands.length} demands`);
         
         // 智能关键词提取和匹配
         const userTextLower = text.toLowerCase();
