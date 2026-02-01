@@ -108,17 +108,25 @@ Refer to the `.env.example` files in the root and `server/` directories:
 ```env
 PORT=3001
 FRONTEND_URL=http://localhost:3000
+PUBLIC_BASE_URL=http://localhost:3001
 GEMINI_API_KEY=your_key
 SEPOLIA_RPC_URL=your_rpc (optional)
+FACILITATOR_URL=https://x402.org/facilitator
+DEFAULT_PAY_TO=0x0000000000000000000000000000000000000000
 ```
 
 **Frontend Config** (root `.env`):
 ```env
 VITE_DYNAMIC_ENV_ID=your_dynamic_id
+# Dev-only: Vite proxies /api/* to this backend origin
 VITE_API_BASE_URL=http://localhost:3001
 ```
 
-### 2. Install & Run
+Notes:
+- Frontend calls the API via relative paths under `/api/v1/*` (works in both dev proxy and production monolith).
+- For production, set `FRONTEND_URL` and `PUBLIC_BASE_URL` to your deployed app URL (same origin as the server).
+
+### 2. Development (two terminals)
 
 ```bash
 # Install dependencies
@@ -131,6 +139,16 @@ cd server && npm run dev
 
 # Start Frontend (Terminal 2)
 npm run dev
+```
+
+### 3. Production / Railway (single monolith service)
+
+The backend serves the built frontend (`dist/`) and exposes `/api/v1/*` from the same process.
+
+```bash
+npm install
+npm run build
+npm start
 ```
 
 ---
@@ -483,17 +501,25 @@ LocalLife 协议旨在桥接现实世界的本地服务与链上流动性。该�
 ```env
 PORT=3001
 FRONTEND_URL=http://localhost:3000
+PUBLIC_BASE_URL=http://localhost:3001
 GEMINI_API_KEY=your_key
 SEPOLIA_RPC_URL=your_rpc (optional)
+FACILITATOR_URL=https://x402.org/facilitator
+DEFAULT_PAY_TO=0x0000000000000000000000000000000000000000
 ```
 
 **前端配置** (根目录 `.env`):
 ```env
 VITE_DYNAMIC_ENV_ID=your_dynamic_id
+# 仅开发模式需要：Vite 会将 /api/* 代理到这个后端 origin
 VITE_API_BASE_URL=http://localhost:3001
 ```
 
-### 2. 安装与启动
+说明：
+- 前端调用 API 使用相对路径 `/api/v1/*`（开发代理 + 生产单体都适用）。
+- 生产部署时，把 `FRONTEND_URL` 和 `PUBLIC_BASE_URL` 都设置为你的线上地址（server 同源）。
+
+### 2. 开发模式（双终端）
 
 ```bash
 # 安装依赖
@@ -506,6 +532,16 @@ cd server && npm run dev
 
 # 启动前端 (终端 2)
 npm run dev
+```
+
+### 3. 生产 / Railway（单体服务）
+
+后端会同时提供前端静态文件（`dist/`）和 `/api/v1/*`。
+
+```bash
+npm install
+npm run build
+npm start
 ```
 
 ---
