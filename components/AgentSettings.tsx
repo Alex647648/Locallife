@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 
 interface AgentSettingsProps {
@@ -9,6 +9,8 @@ interface AgentSettingsProps {
   role: UserRole;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
+  apiKey?: string;
+  onApiKeyChange?: (apiKey: string) => void;
 }
 
 const PROVIDERS = [
@@ -82,7 +84,9 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
   onStart, 
   role,
   selectedModel,
-  onModelChange
+  onModelChange,
+  apiKey = '',
+  onApiKeyChange
 }) => {
   const [activeTab, setActiveTab] = useState<'General' | 'Specific'>('General');
   
@@ -91,6 +95,10 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
   const [selectedProvider, setSelectedProvider] = useState('google');
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [localApiKey, setLocalApiKey] = useState(apiKey);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [saveMessage, setSaveMessage] = useState<string>('');
 
   const [discoveryRange, setDiscoveryRange] = useState<'5km' | '10km' | 'Global'>('10km');
   const [buyerPriority, setBuyerPriority] = useState<'Price' | 'Distance'>('Price');
@@ -98,17 +106,108 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
   const [autoAccept, setAutoAccept] = useState<boolean>(false);
   const [serviceRadius, setServiceRadius] = useState<'Local' | 'Global'>('Local');
 
-  const handleManageKey = async () => {
-    try {
-      // @ts-ignore
-      if (window.aistudio && window.aistudio.openSelectKey) {
-        // @ts-ignore
-        await window.aistudio.openSelectKey();
-      } else {
-        console.warn("API Key selection dialog is not available in this environment.");
+  // 同步外部 API Key 变化到本地状态
+  useEffect(() => {
+    setLocalApiKey(apiKey);
+  }, [apiKey]);
+
+  const handleApiKeyChange = (value: string) => {
+    setLocalApiKey(value);
+    // 清除之前的保存状态
+    if (saveStatus !== 'idle') {
+      setSaveStatus('idle');
+      setSaveMessage('');
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    const trimmedKey = localApiKey.trim();
+    
+    // 如果为空，直接清除
+    if (!trimmedKey) {
+      try {
+        localStorage.removeItem('gemini_api_key');
+        onApiKeyChange?.('');
+        setSaveStatus('success');
+        setSaveMessage('API Key cleared successfully');
+        setTimeout(() => {
+          setSaveStatus('idle');
+          setSaveMessage('');
+        }, 3000);
+      } catch (error) {
+        setSaveStatus('error');
+        setSaveMessage('Failed to clear API Key: ' + (error instanceof Error ? error.message : 'Unknown error'));
       }
+      return;
+    }
+
+    // 验证 API Key 格式（Gemini API Key 通常以特定格式开头）
+    if (!trimmedKey.startsWith('AI') && trimmedKey.length < 20) {
+      setSaveStatus('error');
+      setSaveMessage('Invalid API Key format. Please check your key.');
+      return;
+    }
+
+    setSaveStatus('saving');
+    setSaveMessage('Validating and saving...');
+
+    try {
+      // 通过后端验证 API Key（避免 CORS 问题）
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
+      const testResponse = await fetch(`${API_BASE}/agent/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ id: 'test', role: 'user', content: 'test', timestamp: Date.now() }],
+          systemInstruction: 'You are a helpful assistant.',
+          model: 'gemini-3-flash-preview',
+          apiKey: trimmedKey
+        })
+      });
+
+      if (!testResponse.ok) {
+        const errorData = await testResponse.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || `Validation failed (${testResponse.status})`;
+        throw new Error(errorMessage);
+      }
+
+      // 验证成功，保存到 localStorage
+      localStorage.setItem('gemini_api_key', trimmedKey);
+      onApiKeyChange?.(trimmedKey);
+      
+      setSaveStatus('success');
+      setSaveMessage('API Key validated and saved successfully!');
+      
+      // 3秒后清除成功消息
+      setTimeout(() => {
+        setSaveStatus('idle');
+        setSaveMessage('');
+      }, 3000);
     } catch (error) {
-      console.error("Failed to open API key selection:", error);
+      setSaveStatus('error');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // 提供更友好的错误消息
+      let friendlyMessage = errorMessage;
+      if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('API key')) {
+        friendlyMessage = 'Invalid API Key. Please check your key and try again.';
+      } else if (errorMessage.includes('403') || errorMessage.includes('FORBIDDEN')) {
+        friendlyMessage = 'API Key access denied. Please check your key permissions.';
+      } else if (errorMessage.includes('429') || errorMessage.includes('RATE_LIMIT')) {
+        friendlyMessage = 'Rate limit exceeded. Please try again later.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        friendlyMessage = 'Network error. Please check your connection and backend server.';
+      }
+      
+      setSaveMessage(`Failed to save: ${friendlyMessage}`);
+      
+      // 5秒后清除错误消息
+      setTimeout(() => {
+        setSaveStatus('idle');
+        setSaveMessage('');
+      }, 5000);
     }
   };
 
@@ -267,20 +366,104 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-               <div className="flex flex-col">
-                 <span className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-0.5">Project Credentials</span>
-                 <span className="text-[10px] text-slate-400 font-medium">Encrypted key storage</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-0.5">API Key</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Gemini API credentials</span>
+                </div>
+                <button
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  {showApiKey ? 'Hide' : 'Show'}
+                </button>
               </div>
-              <button 
-                onClick={handleManageKey}
-                className="px-6 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-[9px] font-bold uppercase tracking-widest text-slate-600 transition-all active:scale-95 shadow-sm flex items-center gap-2"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-                Manage Access
-              </button>
+              <div className="relative">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={localApiKey}
+                  onChange={(e) => handleApiKeyChange(e.target.value)}
+                  placeholder="Enter your Gemini API Key"
+                  disabled={saveStatus === 'saving'}
+                  className={`w-full px-4 py-3 bg-white border rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30 text-slate-900 transition-all pr-20 ${
+                    saveStatus === 'error' ? 'border-red-300 focus:border-red-500' : 
+                    saveStatus === 'success' ? 'border-emerald-300 focus:border-emerald-500' : 
+                    'border-slate-200'
+                  } ${saveStatus === 'saving' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                />
+                <button
+                  onClick={handleSaveApiKey}
+                  disabled={saveStatus === 'saving'}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all active:scale-95 ${
+                    saveStatus === 'saving' 
+                      ? 'bg-slate-400 cursor-not-allowed' 
+                      : saveStatus === 'success'
+                      ? 'bg-emerald-600 hover:bg-emerald-500'
+                      : saveStatus === 'error'
+                      ? 'bg-red-600 hover:bg-red-500'
+                      : 'bg-blue-600 hover:bg-blue-500'
+                  }`}
+                >
+                  {saveStatus === 'saving' ? (
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Saving</span>
+                    </div>
+                  ) : saveStatus === 'success' ? (
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Saved</span>
+                    </div>
+                  ) : (
+                    'Save'
+                  )}
+                </button>
+              </div>
+              
+              {/* 状态消息 */}
+              {saveMessage && (
+                <div className={`px-4 py-2.5 rounded-xl text-[10px] font-medium flex items-start gap-2 ${
+                  saveStatus === 'success' 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                    : saveStatus === 'error'
+                    ? 'bg-red-50 text-red-700 border border-red-200'
+                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                }`}>
+                  {saveStatus === 'success' ? (
+                    <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : saveStatus === 'error' ? (
+                    <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  <span className="flex-1 leading-relaxed">{saveMessage}</span>
+                </div>
+              )}
+              
+              <p className="text-[9px] text-slate-400 leading-relaxed">
+                Your API key is stored locally and sent with each request. Get your key from{' '}
+                <a 
+                  href="https://aistudio.google.com/app/apikey" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-700 underline"
+                >
+                  Google AI Studio
+                </a>
+              </p>
             </div>
           </div>
         ) : (

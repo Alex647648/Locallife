@@ -1,17 +1,25 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { ChatMessage } from '../types';
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is required');
+// 默认使用环境变量中的 API Key，但如果传入了 apiKey 参数则优先使用
+function getApiKey(providedApiKey?: string): string {
+  if (providedApiKey && providedApiKey.trim()) {
+    return providedApiKey.trim();
+  }
+  if (process.env.GEMINI_API_KEY) {
+    return process.env.GEMINI_API_KEY;
+  }
+  throw new Error('GEMINI_API_KEY is required. Please provide it in the request or set GEMINI_API_KEY environment variable.');
 }
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function* getAgentResponseStream(
   messages: ChatMessage[],
   systemInstruction: string,
-  model: string = 'gemini-3-flash-preview'
+  model: string = 'gemini-3-flash-preview',
+  apiKey?: string
 ): AsyncGenerator<{ text: string }, void, unknown> {
+  const finalApiKey = getApiKey(apiKey);
+  const ai = new GoogleGenAI({ apiKey: finalApiKey });
   // Convert ChatMessage format to Gemini's content format
   const contents = messages
     .filter(m => m.role !== 'system')
@@ -44,8 +52,10 @@ export async function* getAgentResponseStream(
   }
 }
 
-export async function parseServiceJson(text: string): Promise<any> {
+export async function parseServiceJson(text: string, apiKey?: string): Promise<any> {
   try {
+    const finalApiKey = getApiKey(apiKey);
+    const ai = new GoogleGenAI({ apiKey: finalApiKey });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Extract the service information into JSON from this text. If information is missing, use null.\nText: ${text}`,

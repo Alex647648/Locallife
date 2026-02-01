@@ -65,7 +65,7 @@ const App: React.FC = () => {
     setView(targetRole === UserRole.BUYER ? 'explore' : 'offer');
   };
 
-  const handleSendMessage = async (text: string, modelId: string) => {
+  const handleSendMessage = async (text: string, modelId: string, apiKey?: string) => {
     setIsLoading(true);
     const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', content: text, timestamp: Date.now() };
     const assistantId = (Date.now() + 1).toString();
@@ -73,12 +73,140 @@ const App: React.FC = () => {
 
     const currentMsgs = role === UserRole.BUYER ? buyerMessages : sellerMessages;
     const setMsgs = role === UserRole.BUYER ? setBuyerMessages : setSellerMessages;
-    const instruction = role === UserRole.BUYER ? SYSTEM_INSTRUCTIONS.EXPLORE_AGENT : SYSTEM_INSTRUCTIONS.OFFER_AGENT;
+    
+    // 在调用 AI 前，先检索相关的服务和需求
+    let relevantServices: Service[] = [];
+    let relevantDemands: Demand[] = [];
+    let searchContext = '';
+
+    if (role === UserRole.BUYER) {
+      // 买家模式：检索服务和需求
+      try {
+        // 获取所有服务和需求
+        const allServices = await apiService.getServices();
+        const allDemands = await apiService.getDemands();
+        
+        // 智能关键词提取和匹配
+        const userTextLower = text.toLowerCase();
+        
+        // 类别映射（支持中英文和同义词）
+        const categoryMap: { [key: string]: string[] } = {
+          'culinary': ['culinary', 'cooking', 'food', 'restaurant', 'chef', 'cuisine', '烹饪', '美食', '料理'],
+          'wellness': ['wellness', 'health', 'fitness', 'yoga', 'massage', 'spa', '健康', '健身', '瑜伽', '按摩'],
+          'education': ['education', 'class', 'course', 'lesson', 'tutor', 'learn', '教育', '课程', '学习', '教学'],
+          'tours': ['tour', 'guide', 'travel', 'trip', 'excursion', 'sightseeing', '旅游', '导游', '旅行', '观光'],
+          'digital': ['digital', 'online', 'remote', 'virtual', 'web', 'tech', '数字', '在线', '远程', '虚拟']
+        };
+        
+        // 查找匹配的类别
+        let matchedCategories: string[] = [];
+        for (const [category, keywords] of Object.entries(categoryMap)) {
+          if (keywords.some(kw => userTextLower.includes(kw))) {
+            matchedCategories.push(category);
+          }
+        }
+        
+        // 提取位置关键词（常见城市和地点）
+        const locationKeywords = ['chiang mai', 'bangkok', 'phuket', 'pattaya', '清迈', '曼谷', '普吉', '芭提雅'];
+        const matchedLocation = locationKeywords.find(loc => userTextLower.includes(loc));
+        
+        // 筛选服务和需求
+        if (matchedCategories.length > 0) {
+          relevantServices = allServices.filter(s => 
+            matchedCategories.some(cat => s.category.toLowerCase() === cat) ||
+            matchedCategories.some(cat => s.title.toLowerCase().includes(cat)) ||
+            matchedCategories.some(cat => s.description.toLowerCase().includes(cat))
+          );
+          relevantDemands = allDemands.filter(d => 
+            matchedCategories.some(cat => d.category.toLowerCase() === cat) ||
+            matchedCategories.some(cat => d.title.toLowerCase().includes(cat)) ||
+            matchedCategories.some(cat => d.description.toLowerCase().includes(cat))
+          );
+        } else {
+          // 如果没有匹配的类别，使用全文搜索
+          const keywords = userTextLower
+            .split(/\s+/)
+            .filter(w => w.length > 2 && !['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use'].includes(w));
+          
+          relevantServices = allServices.filter(s => 
+            keywords.some(kw => 
+              s.title.toLowerCase().includes(kw) || 
+              s.description.toLowerCase().includes(kw) ||
+              s.location.toLowerCase().includes(kw) ||
+              s.category.toLowerCase().includes(kw)
+            )
+          );
+          relevantDemands = allDemands.filter(d => 
+            keywords.some(kw => 
+              d.title.toLowerCase().includes(kw) || 
+              d.description.toLowerCase().includes(kw) ||
+              d.location.toLowerCase().includes(kw) ||
+              d.category.toLowerCase().includes(kw)
+            )
+          );
+        }
+        
+        // 如果匹配了位置，进一步筛选
+        if (matchedLocation) {
+          relevantServices = relevantServices.filter(s => 
+            s.location.toLowerCase().includes(matchedLocation)
+          );
+          relevantDemands = relevantDemands.filter(d => 
+            d.location.toLowerCase().includes(matchedLocation)
+          );
+        }
+
+        // 构建搜索上下文
+        if (relevantServices.length > 0 || relevantDemands.length > 0) {
+          searchContext = '\n\n=== AVAILABLE SERVICES AND DEMANDS ON LOCALLIFE PLATFORM ===\n';
+          searchContext += 'You MUST only recommend items from this list. Do not suggest anything outside this platform.\n\n';
+          
+          if (relevantServices.length > 0) {
+            searchContext += `Found ${relevantServices.length} matching service(s) on LocalLife:\n`;
+            relevantServices.slice(0, 10).forEach((s, idx) => {
+              searchContext += `${idx + 1}. [SERVICE] "${s.title}"\n`;
+              searchContext += `   Category: ${s.category}\n`;
+              searchContext += `   Location: ${s.location}\n`;
+              searchContext += `   Price: ${s.price} ${s.unit}\n`;
+              searchContext += `   Description: ${s.description}\n\n`;
+            });
+          }
+          
+          if (relevantDemands.length > 0) {
+            searchContext += `Found ${relevantDemands.length} matching demand(s) on LocalLife:\n`;
+            relevantDemands.slice(0, 10).forEach((d, idx) => {
+              searchContext += `${idx + 1}. [DEMAND] "${d.title}"\n`;
+              searchContext += `   Category: ${d.category}\n`;
+              searchContext += `   Location: ${d.location}\n`;
+              searchContext += `   Budget: ${d.budget} USDC\n`;
+              searchContext += `   Description: ${d.description}\n\n`;
+            });
+          }
+          
+          searchContext += 'CRITICAL: You can ONLY recommend the services and demands listed above. Never suggest services or demands that are not in this list.\n';
+        } else {
+          searchContext = '\n\n=== NO MATCHING SERVICES OR DEMANDS FOUND ON LOCALLIFE PLATFORM ===\n';
+          searchContext += 'After searching the LocalLife platform, no services or demands were found matching the user\'s request.\n';
+          searchContext += 'IMPORTANT: Since there are no matching services or demands on the platform, you MUST suggest the user to create a Demand card to express their need. Guide them through the process of creating a demand by asking for: Title, Category, Description, Location, and Budget.\n';
+          searchContext += 'Do not suggest services or demands from outside the LocalLife platform.\n';
+        }
+      } catch (error) {
+        console.error('Error fetching services/demands:', error);
+        searchContext = '\n\n=== SEARCH UNAVAILABLE ===\n';
+        searchContext += 'Unable to search the LocalLife platform at the moment. You can still help the user, but you should suggest they check the marketplace directly or create a demand. Remember: you can only work with LocalLife platform data.\n';
+      }
+    }
+
+    // 构建增强的系统指令
+    let enhancedInstruction = role === UserRole.BUYER ? SYSTEM_INSTRUCTIONS.EXPLORE_AGENT : SYSTEM_INSTRUCTIONS.OFFER_AGENT;
+    if (role === UserRole.BUYER) {
+      enhancedInstruction += searchContext;
+    }
 
     setMsgs(prev => [...prev, userMessage, assistantPlaceholder]);
     
     try {
-      const stream = await getAgentResponseStream([...currentMsgs, userMessage], instruction, modelId);
+      const stream = await getAgentResponseStream([...currentMsgs, userMessage], enhancedInstruction, modelId, apiKey);
       let fullResponse = "";
       
       for await (const chunk of stream) {
@@ -94,11 +222,13 @@ const App: React.FC = () => {
         try {
           const actionData = JSON.parse(jsonMatch[1]);
           
-          // Remove JSON from UI for cleaner look
-          const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
-          setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText } : m));
-
-          if (actionData.action === 'create_demand') {
+          // Preview actions are handled by ChatWindow's CardPreview component
+          // Create actions are handled here
+          if (actionData.action === 'preview_service' || actionData.action === 'preview_demand') {
+            // Preview is handled in ChatWindow, keep the message with JSON for preview display
+            // Don't remove JSON here - ChatWindow needs it to show preview
+          } else if (actionData.action === 'create_demand') {
+            // User confirmed, create the demand card
             const newDemand = await apiService.postDemand({
               id: `d-${Date.now()}`,
               ...actionData.data,
@@ -107,9 +237,12 @@ const App: React.FC = () => {
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
             });
             setDemands(prev => [newDemand, ...prev]);
-            alert(`🎉 Demand Card Created: ${actionData.data.title}`);
+            // Remove JSON from UI and add success message
+            const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
+            setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Demand card created successfully!' } : m));
           } else if (actionData.action === 'create_service') {
-             const newService = await apiService.createService({
+            // User confirmed, create the service card
+            const newService = await apiService.createService({
               id: `s-${Date.now()}`,
               ...actionData.data,
               sellerId: '0xCurrentUser',
@@ -118,7 +251,9 @@ const App: React.FC = () => {
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
             });
             setServices(prev => [newService, ...prev]);
-            alert(`🎉 Service Listed: ${actionData.data.title}`);
+            // Remove JSON from UI and add success message
+            const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
+            setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Service card created successfully!' } : m));
           }
         } catch (e) {
           console.error("Failed to parse agent action", e);
@@ -148,6 +283,63 @@ const App: React.FC = () => {
       alert(`Booking initiated! Smart Escrow created for: ${item.title}`);
     } else {
       alert(`Response sent to: ${item.title}`);
+    }
+  };
+
+  const handleConfirmCard = async (type: 'service' | 'demand', data: Partial<Service> | Partial<Demand>) => {
+    try {
+      if (type === 'service') {
+        const serviceData = data as Partial<Service>;
+        const newService = await apiService.createService({
+          id: `s-${Date.now()}`,
+          ...serviceData,
+          sellerId: '0xCurrentUser',
+          tokenAddress: `0x${Date.now().toString(16)}`,
+          imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=800&auto=format&fit=crop',
+          avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
+        });
+        setServices(prev => [newService, ...prev]);
+        
+        // 添加确认消息到聊天记录
+        const setMsgs = role === UserRole.SELLER ? setSellerMessages : setBuyerMessages;
+        const confirmMsg: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `✅ Service card created successfully! "${serviceData.title}" is now live on the marketplace.`,
+          timestamp: Date.now()
+        };
+        setMsgs(prev => [...prev, confirmMsg]);
+      } else {
+        const demandData = data as Partial<Demand>;
+        const newDemand = await apiService.postDemand({
+          id: `d-${Date.now()}`,
+          ...demandData,
+          buyerId: '0xCurrentUser',
+          timestamp: Date.now(),
+          avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
+        });
+        setDemands(prev => [newDemand, ...prev]);
+        
+        // 添加确认消息到聊天记录
+        const setMsgs = role === UserRole.BUYER ? setBuyerMessages : setSellerMessages;
+        const confirmMsg: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `✅ Demand card posted successfully! "${demandData.title}" is now visible to service providers.`,
+          timestamp: Date.now()
+        };
+        setMsgs(prev => [...prev, confirmMsg]);
+      }
+    } catch (error) {
+      console.error('Error creating card:', error);
+      const setMsgs = role === UserRole.BUYER ? setBuyerMessages : setSellerMessages;
+      const errorMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '❌ Sorry, there was an error creating your card. Please try again.',
+        timestamp: Date.now()
+      };
+      setMsgs(prev => [...prev, errorMsg]);
     }
   };
 
@@ -202,7 +394,7 @@ const App: React.FC = () => {
              </div>
           </footer>
         </main>
-        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden bg-white/80 backdrop-blur-3xl shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] ${sidebarOpen ? 'w-[400px] border-l border-black/5' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} isLoading={isLoading} className="h-full" /></div></aside>
+        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden bg-white/80 backdrop-blur-3xl shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] ${sidebarOpen ? 'w-[400px] border-l border-black/5' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} onConfirmCard={handleConfirmCard} isLoading={isLoading} className="h-full" /></div></aside>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`fixed top-1/2 -translate-y-1/2 z-50 transition-all duration-500 flex items-center justify-center group ${sidebarOpen ? 'right-[400px]' : 'right-0'}`} aria-label="Toggle AI Agent"><div className={`flex items-center gap-2 px-3 py-6 rounded-l-3xl shadow-2xl border-y border-l transition-all ${sidebarOpen ? 'bg-white border-black/5 text-slate-400 hover:text-blue-600' : 'bg-slate-900 border-white/10 text-white hover:bg-blue-600 translate-x-1 hover:translate-x-0'}`}><div className="flex flex-col items-center gap-1"><span className={`text-[10px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-opacity ${sidebarOpen ? 'opacity-40' : 'opacity-100'}`}>{sidebarOpen ? 'CLOSE' : 'AGENT'}</span><svg className={`w-5 h-5 mt-2 transition-transform duration-500 ${sidebarOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg></div></div></button>
       </div>
     </div>
