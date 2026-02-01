@@ -217,10 +217,10 @@ ordersRouter.post('/x402/:orderId/fulfill', async (req: Request, res: Response) 
      maxTimeoutSeconds: 300,
      payTo: order.sellerPayTo,
      asset: config.baseSepoliaUsdcAddress,
-     extra: {
-       name: 'USD Coin',
-       version: '2',
-     },
+      extra: {
+        name: 'USDC',
+        version: '2',
+      },
    };
 
    if (!paymentHeader && order.status === 'CREATED') {
