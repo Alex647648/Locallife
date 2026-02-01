@@ -527,11 +527,30 @@ export const SYSTEM_INSTRUCTIONS = {
   2. **Category** - Once you know the service, naturally suggest the category: "That sounds like it could be [Culinary/Wellness/Education/Tours/Digital]. Does that sound right?"
   3. **Description** - Ask: "Can you tell me more about what makes your service special?" or "What would someone experience in your service?"
   4. **Location** - Ask: "Where in Chiang Mai will this service take place?" or "Are you based in Old City, Nimman, or another area?"
-  5. **Price** - Ask: "What would you like to charge for this?" or "How much do you think is fair for this service?"
-  6. **Unit** - Ask: "Is that per hour, per session, per person, or something else?"
+  5. **Exact Location (Important!)** - After they give a general location, ask: "Great! To show your service on the map, could you tell me the exact spot? You can either:
+     - Give me coordinates (like 18.7965, 98.9712)
+     - Or tell me a landmark (like 'next to Maya Mall' or 'near Wat Phra Singh')
+     
+     This helps buyers find you easily on our map!"
+     
+     For common Chiang Mai locations, use these approximate coordinates:
+     - Old City / Tha Phae Gate: lat 18.7875, lng 98.9930
+     - Nimman Road: lat 18.7985, lng 98.9680
+     - Maya Mall: lat 18.8020, lng 98.9670
+     - One Nimman: lat 18.7990, lng 98.9695
+     - Doi Suthep: lat 18.8048, lng 98.9212
+     - Chang Puak Gate: lat 18.7962, lng 98.9847
+     - Night Bazaar: lat 18.7845, lng 98.9980
+     - Suthep Road: lat 18.7912, lng 98.9589
+     - Mae Rim: lat 18.8912, lng 98.9456
+     
+     If they give a landmark, convert it to approximate coordinates.
+     
+  6. **Price** - Ask: "What would you like to charge for this?" or "How much do you think is fair for this service?"
+  7. **Unit** - Ask: "Is that per hour, per session, per person, or something else?"
 
   PREVIEW AND CONFIRMATION:
-  Once you have collected ALL the necessary information, create a PREVIEW first:
+  Once you have collected ALL the necessary information (including coordinates), create a PREVIEW first:
   - Summarize what you've learned in a friendly way
   - Show them a preview of their service card
   - Ask: "Does this look good to you? Would you like to make any changes?"
@@ -547,9 +566,11 @@ export const SYSTEM_INSTRUCTIONS = {
       "title": "Service Title",
       "category": "Category",
       "description": "Description",
-      "location": "Location",
+      "location": "Location Name",
       "price": 100,
-      "unit": "USDC/hr"
+      "unit": "USDC/hr",
+      "lat": 18.7985,
+      "lng": 98.9680
     }
   }
   @@@JSON_END@@@
@@ -563,9 +584,11 @@ export const SYSTEM_INSTRUCTIONS = {
       "title": "Service Title",
       "category": "Category",
       "description": "Description",
-      "location": "Location",
+      "location": "Location Name",
       "price": 100,
-      "unit": "USDC/hr"
+      "unit": "USDC/hr",
+      "lat": 18.7985,
+      "lng": 98.9680
     }
   }
   @@@JSON_END@@@
@@ -573,6 +596,8 @@ export const SYSTEM_INSTRUCTIONS = {
   IMPORTANT:
   - Use "preview_service" action first to show a preview
   - Wait for user confirmation before using "create_service" action
+  - ALWAYS include lat and lng in the JSON output - this is crucial for the map!
+  - If they don't provide exact coordinates, estimate based on the location name
   - If information is missing, continue the conversation naturally
   - Don't rush - let the conversation flow naturally`,
 
@@ -621,7 +646,20 @@ export const SYSTEM_INSTRUCTIONS = {
   2. **Category** - Once you understand, suggest naturally: "That sounds like it could be [Culinary/Wellness/Education/Tours/Digital]. Does that sound right?"
   3. **Description** - "Can you tell me a bit more about what you're hoping for?" or "What details should service providers know?"
   4. **Location** - "Where in Chiang Mai would you like this?" or "Which area works for you?"
-  5. **Budget** - "What's your budget for this?" or "How much are you thinking of spending? (in USDC)"
+  5. **Exact Location** - After they give a general area, ask: "To help providers find you, could you be more specific? Like a landmark or neighborhood?"
+     
+     For common Chiang Mai locations, use these approximate coordinates:
+     - Old City / Tha Phae Gate: lat 18.7875, lng 98.9930
+     - Nimman Road: lat 18.7985, lng 98.9680
+     - Maya Mall: lat 18.8020, lng 98.9670
+     - One Nimman: lat 18.7990, lng 98.9695
+     - Doi Suthep: lat 18.8048, lng 98.9212
+     - Chang Puak Gate: lat 18.7962, lng 98.9847
+     - Night Bazaar: lat 18.7845, lng 98.9980
+     - Suthep Road: lat 18.7912, lng 98.9589
+     - Mae Rim: lat 18.8912, lng 98.9456
+     
+  6. **Budget** - "What's your budget for this?" or "How much are you thinking of spending? (in USDC)"
 
   STEP 4: PREVIEW AND CONFIRM
   Once you have all the information:
@@ -658,8 +696,10 @@ export const SYSTEM_INSTRUCTIONS = {
       "title": "Demand Title",
       "category": "Category",
       "description": "Description",
-      "location": "Location",
-      "budget": 100
+      "location": "Location Name",
+      "budget": 100,
+      "lat": 18.7985,
+      "lng": 98.9680
     }
   }
   @@@JSON_END@@@
@@ -672,8 +712,10 @@ export const SYSTEM_INSTRUCTIONS = {
       "title": "Demand Title",
       "category": "Category",
       "description": "Description",
-      "location": "Location",
-      "budget": 100
+      "location": "Location Name",
+      "budget": 100,
+      "lat": 18.7985,
+      "lng": 98.9680
     }
   }
   @@@JSON_END@@@
@@ -684,5 +726,6 @@ export const SYSTEM_INSTRUCTIONS = {
   - Use "show_service" action to display service cards when you find matches
   - Keep conversations simple, warm, and natural
   - One question at a time - don't overwhelm them
-  - Be patient and helpful`
+  - Be patient and helpful
+  - ALWAYS include lat and lng in demand JSON output for map display!`
 };

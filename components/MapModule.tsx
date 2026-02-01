@@ -10,8 +10,8 @@ interface MapModuleProps {
   focusItem?: any | null; // New prop to handle external focus requests
 }
 
-// Coordinate seeding logic moved to a shared-style internal helper for stability
-export const getStablePos = (id: string, category: string) => {
+// Generate fallback coordinates for items without real lat/lng
+export const getFallbackPos = (id: string, category: string) => {
   const seededRandom = (str: string) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -44,6 +44,17 @@ export const getStablePos = (id: string, category: string) => {
   return { lat, lng };
 };
 
+// Get position for an item - use real coordinates if available, otherwise fallback
+export const getStablePos = (item: { id: string; category: string; lat?: number; lng?: number }) => {
+  // If item has real coordinates, use them
+  if (item.lat !== undefined && item.lng !== undefined) {
+    return { lat: item.lat, lng: item.lng, isReal: true };
+  }
+  // Otherwise generate fallback coordinates
+  const fallback = getFallbackPos(item.id, item.category);
+  return { ...fallback, isReal: false };
+};
+
 const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focusItem }) => {
   const [viewType, setViewType] = useState<'all' | 'services' | 'demands'>('all');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -54,8 +65,8 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
   const VIEW_CENTER: [number, number] = [18.7930, 98.9750]; 
 
   const geoItems = [
-    ...services.map(s => ({ ...s, type: 'service' as const, ...getStablePos(s.id, s.category) })),
-    ...demands.map(d => ({ ...d, type: 'demand' as const, ...getStablePos(d.id, d.category) }))
+    ...services.map(s => ({ ...s, type: 'service' as const, ...getStablePos(s) })),
+    ...demands.map(d => ({ ...d, type: 'demand' as const, ...getStablePos(d) }))
   ];
 
   // Map Initialization
@@ -100,11 +111,15 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
 
     filtered.forEach(item => {
       const color = item.type === 'service' ? '#2563eb' : '#10b981';
+      const isReal = (item as any).isReal;
+      // Real coordinates get a solid marker, generated ones get a ring
       const customIcon = L.divIcon({
         className: 'custom-div-icon',
-        html: `<div style="background-color: ${color}; width: 14px; height: 14px; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer;"></div>`,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
+        html: isReal 
+          ? `<div style="background-color: ${color}; width: 16px; height: 16px; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer;"></div>`
+          : `<div style="background-color: transparent; width: 14px; height: 14px; border: 3px solid ${color}; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; opacity: 0.7;"></div>`,
+        iconSize: isReal ? [16, 16] : [14, 14],
+        iconAnchor: isReal ? [8, 8] : [7, 7]
       });
 
       const marker = L.marker([item.lat, item.lng], { icon: customIcon })
@@ -121,7 +136,7 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
   // External Focus Listener
   useEffect(() => {
     if (focusItem && mapInstance.current) {
-      const pos = getStablePos(focusItem.id, focusItem.category);
+      const pos = getStablePos(focusItem);
       setSelectedItem({ ...focusItem, ...pos });
       mapInstance.current.setView([pos.lat, pos.lng], 16, { animate: true });
     }

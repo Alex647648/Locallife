@@ -28,6 +28,8 @@ export interface Service {
   supply?: number;
   imageUrl?: string;
   avatarUrl?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Demand {
@@ -40,6 +42,8 @@ export interface Demand {
   budget: number;
   timestamp: number;
   avatarUrl?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Order {

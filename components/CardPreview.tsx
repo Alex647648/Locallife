@@ -32,13 +32,22 @@ const CardPreview: React.FC<CardPreviewProps> = ({ type, data, onConfirm, onEdit
           <h4 className="text-lg font-bold text-slate-900 mb-2">{service.title || 'Service Title'}</h4>
           <p className="text-sm text-slate-600 mb-4 leading-relaxed">{service.description || 'Description will appear here...'}</p>
           
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             <span>{service.location || 'Location'}</span>
           </div>
+          
+          {service.lat && service.lng && (
+            <div className="flex items-center gap-2 text-[10px] text-emerald-600 mb-4 bg-emerald-50 px-2 py-1 rounded-lg w-fit">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Map coordinates: {service.lat.toFixed(4)}, {service.lng.toFixed(4)}</span>
+            </div>
+          )}
           
           <div className="flex items-center justify-between border-t border-slate-100 pt-4">
             <div>
@@ -95,13 +104,22 @@ const CardPreview: React.FC<CardPreviewProps> = ({ type, data, onConfirm, onEdit
           <h4 className="text-lg font-bold text-slate-900 mb-2">{demand.title || 'Demand Title'}</h4>
           <p className="text-sm text-slate-600 mb-4 leading-relaxed">{demand.description || 'Description will appear here...'}</p>
           
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             <span>{demand.location || 'Location'}</span>
           </div>
+          
+          {demand.lat && demand.lng && (
+            <div className="flex items-center gap-2 text-[10px] text-blue-600 mb-4 bg-blue-50 px-2 py-1 rounded-lg w-fit">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Map coordinates: {demand.lat.toFixed(4)}, {demand.lng.toFixed(4)}</span>
+            </div>
+          )}
           
           <div className="flex items-center justify-between border-t border-slate-100 pt-4">
             <div>

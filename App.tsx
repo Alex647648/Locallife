@@ -9,8 +9,6 @@ import {
   Order 
 } from './types';
 import { 
-  MOCK_SERVICES, 
-  MOCK_DEMANDS,
   SYSTEM_INSTRUCTIONS 
 } from './constants';
 import { getAgentResponseStream } from './services/geminiService';
@@ -33,9 +31,10 @@ const App: React.FC = () => {
   const [walletConnected, setWalletConnected] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   
-  const [services, setServices] = useState<Service[]>(MOCK_SERVICES);
-  const [demands, setDemands] = useState<Demand[]>(MOCK_DEMANDS);
+  const [services, setServices] = useState<Service[]>([]);
+  const [demands, setDemands] = useState<Demand[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   
   const [focusedItem, setFocusedItem] = useState<any | null>(null);
@@ -49,8 +48,24 @@ const App: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(false);
 
+  // Load data from backend on startup
   useEffect(() => {
-    const loadData = async () => {};
+    const loadData = async () => {
+      setDataLoading(true);
+      try {
+        const [servicesData, demandsData] = await Promise.all([
+          apiService.getServices(),
+          apiService.getDemands()
+        ]);
+        setServices(servicesData);
+        setDemands(demandsData);
+        console.log(`✅ Loaded ${servicesData.length} services, ${demandsData.length} demands from backend`);
+      } catch (error) {
+        console.error('Failed to load data from backend:', error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
     loadData();
   }, []);
 
@@ -355,6 +370,25 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    // Show loading state
+    if (dataLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+          <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center animate-pulse">
+            <span className="text-2xl font-bold text-white">L</span>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+            </div>
+            <span className="text-sm font-medium text-slate-400">Loading services from backend...</span>
+          </div>
+        </div>
+      );
+    }
+
     switch (view) {
       case 'home': 
         return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} />;
@@ -389,7 +423,15 @@ const App: React.FC = () => {
             <button onClick={() => navigateToDashboard(UserRole.SELLER)} className={`px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${view === 'offer' ? 'bg-white text-blue-600 shadow-md ring-1 ring-black/[0.02]' : 'text-slate-400 hover:text-slate-600'}`}>Offer</button>
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          {!dataLoading && (
+            <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+              <span>{services.length} services</span>
+              <span className="text-slate-200">|</span>
+              <span>{demands.length} demands</span>
+            </div>
+          )}
           <button onClick={connectWallet} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-black/10">{walletConnected ? '0x3f...2e4d' : 'Connect Wallet'}</button>
         </div>
       </nav>

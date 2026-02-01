@@ -28,6 +28,8 @@ export interface Service {
   supply?: number;
   imageUrl?: string; // Main service theme image
   avatarUrl?: string; // Service provider avatar
+  lat?: number; // Latitude for map positioning
+  lng?: number; // Longitude for map positioning
 }
 
 export interface Demand {
@@ -40,6 +42,8 @@ export interface Demand {
   budget: number;
   timestamp: number;
   avatarUrl?: string;
+  lat?: number; // Latitude for map positioning
+  lng?: number; // Longitude for map positioning
 }
 
 export interface Order {

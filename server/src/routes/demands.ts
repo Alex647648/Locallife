@@ -1,11 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { Demand } from '../types';
 import { z } from 'zod';
+import { dataStore } from '../services/dataStore';
 
 export const demandsRouter = Router();
-
-// In-memory storage (in production, use database)
-const demands: Demand[] = [];
 
 // Validation schema
 const createDemandSchema = z.object({
@@ -13,9 +11,11 @@ const createDemandSchema = z.object({
   description: z.string().min(1),
   category: z.string().min(1),
   location: z.string().min(1),
-  budget: z.number().positive(),
+  budget: z.number().nonnegative(),
   buyerId: z.string().min(1),
-  avatarUrl: z.string().url().optional()
+  avatarUrl: z.string().url().optional().or(z.literal('')),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional()
 });
 
 // GET /api/v1/demands - Get all demands
@@ -23,23 +23,16 @@ demandsRouter.get('/', (req: Request, res: Response) => {
   try {
     const { category, location } = req.query;
     
-    let filteredDemands = [...demands];
-    
-    if (category && typeof category === 'string') {
-      filteredDemands = filteredDemands.filter(d => d.category === category);
-    }
-    
-    if (location && typeof location === 'string') {
-      filteredDemands = filteredDemands.filter(d => 
-        d.location.toLowerCase().includes(location.toLowerCase())
-      );
-    }
+    const demands = dataStore.getDemands({
+      category: category as string | undefined,
+      location: location as string | undefined
+    });
     
     res.json({
       success: true,
-      data: filteredDemands,
+      data: demands,
       meta: {
-        total: filteredDemands.length
+        total: demands.length
       }
     });
   } catch (error: any) {
@@ -47,6 +40,33 @@ demandsRouter.get('/', (req: Request, res: Response) => {
       success: false,
       error: 'INTERNAL_ERROR',
       message: error.message || 'Failed to fetch demands'
+    });
+  }
+});
+
+// GET /api/v1/demands/:id - Get specific demand
+demandsRouter.get('/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const demand = dataStore.getDemandById(id);
+    
+    if (!demand) {
+      return res.status(404).json({
+        success: false,
+        error: 'NOT_FOUND',
+        message: `Demand with id ${id} not found`
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: demand
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: error.message || 'Failed to fetch demand'
     });
   }
 });
@@ -72,17 +92,44 @@ demandsRouter.post('/', (req: Request, res: Response) => {
       timestamp: Date.now()
     };
     
-    demands.push(newDemand);
+    const created = dataStore.addDemand(newDemand);
     
     res.status(201).json({
       success: true,
-      data: newDemand
+      data: created
     });
   } catch (error: any) {
     res.status(500).json({
       success: false,
       error: 'INTERNAL_ERROR',
       message: error.message || 'Failed to create demand'
+    });
+  }
+});
+
+// DELETE /api/v1/demands/:id - Delete a demand
+demandsRouter.delete('/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleted = dataStore.deleteDemand(id);
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'NOT_FOUND',
+        message: `Demand with id ${id} not found`
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Demand deleted successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: error.message || 'Failed to delete demand'
     });
   }
 });
