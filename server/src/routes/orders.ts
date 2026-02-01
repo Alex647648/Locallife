@@ -161,7 +161,7 @@ ordersRouter.post('/x402', (req: Request, res: Response) => {
   }
 
   const service = dataStore.getServiceById(serviceId);
-  const rawPayTo = payTo || service?.sellerId || config.defaultPayTo;
+  const rawPayTo = payTo || service?.walletAddress || service?.sellerId || config.defaultPayTo;
   const sellerPayTo = isValidEthAddress(rawPayTo) ? rawPayTo : buyerAddress;
   const priceBaseUnits = toUsdcBaseUnits(price);
   const order = x402OrderStore.createOrder({

@@ -10,6 +10,7 @@ import { adminRouter } from './routes/admin';
 import { erc8004Router } from './routes/erc8004';
 import { erc8004WriteRouter } from './routes/erc8004Write';
 import { hostedJsonRouter } from './routes/hostedJson';
+import { messagesRouter } from './routes/messages';
 
 // Load server-specific .env using __dirname so it works regardless of CWD
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -34,6 +35,7 @@ app.use('/api/v1/agent', agentRouter);
 app.use('/api/v1/services', servicesRouter);
 app.use('/api/v1/demands', demandsRouter);
 app.use('/api/v1/orders', ordersRouter);
+app.use('/api/v1/orders', messagesRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/erc8004', erc8004Router);
 app.use('/api/v1/erc8004', erc8004WriteRouter);

@@ -19,7 +19,8 @@ const createServiceSchema = z.object({
   imageUrl: z.string().url().optional().or(z.literal('')),
   avatarUrl: z.string().url().optional().or(z.literal('')),
   lat: z.number().min(-90).max(90).optional(),
-  lng: z.number().min(-180).max(180).optional()
+  lng: z.number().min(-180).max(180).optional(),
+  walletAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional()
 });
 
 // GET /api/v1/services - Get all services with optional filtering
