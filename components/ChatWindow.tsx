@@ -4,15 +4,17 @@ import { ChatMessage, UserRole, Service, Demand } from '../types';
 import AgentSettings from './AgentSettings';
 import CardPreview from './CardPreview';
 import ServiceCard from './ServiceCard';
+import DemandCard from './DemandCard';
 
 interface ChatWindowProps {
   messages: ChatMessage[];
   onSendMessage: (text: string, modelId: string, apiKey?: string) => void;
-  onConfirmCard?: (type: 'service' | 'demand', data: Partial<Service> | Partial<Demand>) => void;
-  onLocate?: (item: Service) => void;
   isLoading: boolean;
   role: UserRole;
   onRoleChange: (role: UserRole) => void;
+  onBookService?: (service: Service) => void;
+  onAcceptDemand?: (demand: Demand) => void;
+  onLocate?: (item: Service | Demand) => void;
   placeholder?: string;
   className?: string;
 }
@@ -20,11 +22,12 @@ interface ChatWindowProps {
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
   messages, 
   onSendMessage,
-  onConfirmCard,
-  onLocate,
   isLoading, 
   role,
   onRoleChange,
+  onBookService,
+  onAcceptDemand,
+  onLocate,
   placeholder = "How can I help you today?",
   className = ""
 }) => {
@@ -82,9 +85,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   const handleConfirmCard = () => {
-    if (previewCard && onConfirmCard) {
-      onConfirmCard(previewCard.type, previewCard.data);
-      // 发送确认消息给AI
+    if (previewCard) {
+      // 只发送确认消息给AI，让AI返回create动作，避免重复创建
       const confirmText = previewCard.type === 'service' 
         ? 'Yes, this looks good! Please create the service card.'
         : 'Yes, this looks good! Please create the demand card.';
@@ -190,12 +192,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.filter(m => m.role !== 'system').map((msg) => {
-          // 检查是否包含JSON动作（预览、服务卡片等）
+          // 检查是否包含JSON动作（预览、服务卡片、需求卡片等）
           const jsonMatches = Array.from(msg.content.matchAll(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/g));
           const serviceCards: Service[] = [];
+          const demandCards: Demand[] = [];
           let hasPreview = false;
           
-          // 提取所有服务卡片和预览动作
+          // 提取所有服务卡片、需求卡片和预览动作
           jsonMatches.forEach(match => {
             try {
               const actionData = JSON.parse(match[1]);
@@ -214,6 +217,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   avatarUrl: actionData.data.avatarUrl
                 };
                 serviceCards.push(service);
+              } else if (actionData.action === 'show_demand') {
+                // 构建完整的Demand对象
+                const demand: Demand = {
+                  id: actionData.data.id || `temp-${Date.now()}`,
+                  buyerId: '0xBuyer',
+                  title: actionData.data.title,
+                  category: actionData.data.category,
+                  description: actionData.data.description,
+                  location: actionData.data.location,
+                  budget: actionData.data.budget,
+                  timestamp: Date.now(),
+                  avatarUrl: actionData.data.avatarUrl || 'https://i.pravatar.cc/150?u=0xBuyer'
+                };
+                demandCards.push(demand);
               } else if (actionData.action === 'preview_service' || actionData.action === 'preview_demand') {
                 hasPreview = true;
               }
@@ -222,14 +239,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             }
           });
           
-          // 清理消息内容（移除JSON，但保留预览JSON用于CardPreview组件）
+          // 清理消息内容（移除所有JSON，但保留预览JSON用于CardPreview组件）
           let cleanContent = msg.content;
           if (!hasPreview) {
-            // 如果没有预览动作，移除所有JSON
+            // 如果没有预览动作，移除所有JSON（包括create_service和create_demand）
             cleanContent = msg.content.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/g, '').trim();
           } else {
-            // 如果有预览动作，只移除show_service的JSON
-            cleanContent = msg.content.replace(/@@@JSON_START@@@[\s\S]*?"action":\s*"show_service"[\s\S]*?@@@JSON_END@@@/g, '').trim();
+            // 如果有预览动作，移除show_service和create动作的JSON，但保留preview动作
+            cleanContent = msg.content
+              .replace(/@@@JSON_START@@@[\s\S]*?"action":\s*"show_service"[\s\S]*?@@@JSON_END@@@/g, '')
+              .replace(/@@@JSON_START@@@[\s\S]*?"action":\s*"create_service"[\s\S]*?@@@JSON_END@@@/g, '')
+              .replace(/@@@JSON_START@@@[\s\S]*?"action":\s*"create_demand"[\s\S]*?@@@JSON_END@@@/g, '')
+              .trim();
           }
           
           return (
@@ -257,9 +278,95 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     <div key={service.id} className="w-full max-w-sm">
                       <ServiceCard
                         service={service}
-                        onSelect={() => {}}
+                        onSelect={onBookService || (() => {})}
                         onLocate={onLocate ? () => onLocate(service) : undefined}
                       />
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* 显示需求卡片 */}
+              {msg.role === 'assistant' && demandCards.length > 0 && (
+                <div className="flex justify-start gap-4 flex-wrap">
+                  {demandCards.map((demand) => (
+                    <div key={demand.id} className="w-full max-w-full">
+                      {/* 聊天窗口中的需求卡片 - 强制垂直布局以确保完整显示 */}
+                      <div className="group bg-white/80 border p-6 rounded-2xl flex flex-col gap-6 transition-all hover:bg-white hover:shadow-xl border-black/5 overflow-visible">
+                        <div className="flex gap-4 items-start">
+                          <div className="relative shrink-0">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 ring-1 ring-black/5 shadow-inner">
+                              <img src={demand.avatarUrl} className="w-full h-full object-cover" alt="Buyer" />
+                            </div>
+                            {demand.budget > 200 && demand.category === 'Digital' && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-ping"></div>
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-2 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
+                                demand.budget > 200 && demand.category === 'Digital' ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50'
+                              }`}>
+                                {demand.budget > 200 && demand.category === 'Digital' ? 'Flash Intent' : demand.category}
+                              </span>
+                              {demand.budget >= 1000 && (
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Contract</span>
+                              )}
+                            </div>
+                            <h4 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">{demand.title}</h4>
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed">{demand.description}</p>
+                            <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                {demand.location}
+                              </span>
+                              <span>•</span>
+                              <span>{new Date(demand.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 pt-4 border-t border-black/5">
+                          <div className="text-left">
+                            <div className="flex items-baseline gap-1">
+                              <span className={`text-xl font-bold ${
+                                demand.budget > 200 && demand.category === 'Digital' ? 'text-red-600' : 'text-slate-900'
+                              }`}>
+                                {demand.budget}
+                              </span>
+                              <span className="text-[9px] font-bold text-slate-400">USDC</span>
+                            </div>
+                            <span className="text-[8px] font-bold uppercase tracking-widest text-slate-300 block mt-0.5">
+                              {demand.budget >= 1000 ? 'Estimated Budget' : 'Quick Bounty'}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            {onLocate && (
+                              <button 
+                                onClick={() => onLocate(demand)}
+                                className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all active:scale-95"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => onAcceptDemand?.(demand)}
+                              className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 shadow-md whitespace-nowrap ${
+                                demand.budget > 200 && demand.category === 'Digital' 
+                                  ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/20' 
+                                  : 'bg-slate-900 hover:bg-blue-600 text-white shadow-slate-900/10'
+                              }`}
+                            >
+                              Send Offer
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

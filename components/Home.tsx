@@ -64,7 +64,7 @@ const Home: React.FC<HomeProps> = ({ services, demands, onAction, focusItem, cur
                    <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6 line-clamp-2">{demand.description}</p>
                    <div className="flex items-center justify-between pt-6 border-t border-black/[0.04]">
                       <div><span className="text-2xl font-bold text-slate-900">{demand.budget}</span><span className="text-[10px] font-bold text-slate-400 ml-1 uppercase tracking-widest">USDC</span></div>
-                      <button onClick={() => onAction(demand)} className="bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-black/10">Send Offer</button>
+                      <button onClick={() => onAction(demand)} className="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-black/10">Send Offer</button>
                    </div>
                 </div>
              ))

@@ -128,5 +128,72 @@ export const apiService = {
       console.error('[API] Error updating order status:', error);
       throw error;
     }
-  }
+  },
+
+  async getErc8004Agents(): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_BASE}/erc8004/agents`);
+      return await handleResponse<any[]>(response);
+    } catch (error) {
+      console.error('[API] Error fetching ERC-8004 agents:', error);
+      return [];
+    }
+  },
+
+  async createAgentRegistration(data: {
+    sellerWallet: string;
+    name: string;
+    description: string;
+    category: string;
+    location?: string;
+    pricing?: string;
+  }): Promise<{ agentURI: string } | null> {
+    try {
+      const response = await fetch(`${API_BASE}/erc8004/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await handleResponse<{ agentURI: string }>(response);
+    } catch (error) {
+      console.error('[API] Error creating agent registration:', error);
+      return null;
+    }
+  },
+
+  async createFeedbackURI(data: {
+    orderId: string;
+    buyerWallet: string;
+    agentId: string;
+    rating: number;
+    comment: string;
+  }): Promise<{ feedbackURI: string; feedbackHash: string } | null> {
+    try {
+      const response = await fetch(`${API_BASE}/erc8004/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await handleResponse<{ feedbackURI: string; feedbackHash: string }>(response);
+    } catch (error) {
+      console.error('[API] Error creating feedback URI:', error);
+      return null;
+    }
+  },
+
+  async createX402Order(serviceId: string, buyerAddress: string, price: number, payTo?: string): Promise<{ orderId: string } | null> {
+    try {
+      const priceStr = `$${price.toFixed(2)}`;
+      const response = await fetch(`${API_BASE}/orders/x402`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceId, buyerAddress, price: priceStr, ...(payTo ? { payTo } : {}) }),
+      });
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error('[API] Error creating x402 order:', error);
+      return null;
+    }
+  },
 };

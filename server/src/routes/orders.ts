@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { Order, OrderStatus } from '../types';
 import { z } from 'zod';
+import { x402OrderStore } from '../storage/orderStore';
+import { config } from '../config';
 
 export const ordersRouter = Router();
 
@@ -123,4 +125,92 @@ ordersRouter.patch('/:id/status', (req: Request, res: Response) => {
       message: error.message || 'Failed to update order status'
     });
   }
+});
+
+// --- x402-style order creation and fulfillment ---
+
+ordersRouter.post('/x402', (req: Request, res: Response) => {
+  const { serviceId, buyerAddress, price, payTo } = req.body as {
+    serviceId?: string;
+    buyerAddress?: string;
+    price?: string;
+    payTo?: string;
+  };
+
+  if (!serviceId || !buyerAddress || !price) {
+    res.status(400).json({
+      success: false,
+      error: 'VALIDATION_ERROR',
+      message: 'Missing required fields: serviceId, buyerAddress, price',
+    });
+    return;
+  }
+
+  const sellerPayTo = payTo || config.defaultPayTo;
+  const order = x402OrderStore.createOrder({ serviceId, buyerAddress, sellerPayTo, price });
+
+  res.status(201).json({
+    success: true,
+    data: {
+      orderId: order.id,
+      status: order.status,
+      price: order.price,
+      payTo: order.sellerPayTo,
+      network: 'eip155:84532',
+      asset: config.baseSepoliaUsdcAddress,
+      createdAt: order.createdAt,
+    },
+  });
+});
+
+ordersRouter.post('/x402/:orderId/fulfill', (req: Request, res: Response) => {
+  const orderId = typeof req.params.orderId === 'string'
+    ? req.params.orderId
+    : req.params.orderId[0];
+
+  const order = x402OrderStore.getOrder(orderId);
+  if (!order) {
+    res.status(404).json({
+      success: false,
+      error: 'NOT_FOUND',
+      message: 'Order not found',
+    });
+    return;
+  }
+
+  if (order.status === 'CREATED') {
+    res.status(402).json({
+      success: false,
+      error: 'PAYMENT_REQUIRED',
+      message: 'Payment required before fulfillment',
+      data: {
+        orderId: order.id,
+        price: order.price,
+        payTo: order.sellerPayTo,
+        network: 'eip155:84532',
+        asset: config.baseSepoliaUsdcAddress,
+      },
+    });
+    return;
+  }
+
+  res.json({ success: true, data: order });
+});
+
+ordersRouter.get('/x402/:orderId', (req: Request, res: Response) => {
+  const orderId = typeof req.params.orderId === 'string'
+    ? req.params.orderId
+    : req.params.orderId[0];
+
+  const order = x402OrderStore.getOrder(orderId);
+  if (!order) {
+    res.status(404).json({
+      success: false,
+      error: 'NOT_FOUND',
+      message: 'Order not found',
+    });
+    return;
+  }
+
+  res.json({ success: true, data: order });
 });
