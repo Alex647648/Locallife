@@ -286,63 +286,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleConfirmCard = async (type: 'service' | 'demand', data: Partial<Service> | Partial<Demand>) => {
-    try {
-      if (type === 'service') {
-        const serviceData = data as Partial<Service>;
-        const newService = await apiService.createService({
-          id: `s-${Date.now()}`,
-          ...serviceData,
-          sellerId: '0xCurrentUser',
-          tokenAddress: `0x${Date.now().toString(16)}`,
-          imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=800&auto=format&fit=crop',
-          avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
-        });
-        setServices(prev => [newService, ...prev]);
-        
-        // 添加确认消息到聊天记录
-        const setMsgs = role === UserRole.SELLER ? setSellerMessages : setBuyerMessages;
-        const confirmMsg: ChatMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `✅ Service card created successfully! "${serviceData.title}" is now live on the marketplace.`,
-          timestamp: Date.now()
-        };
-        setMsgs(prev => [...prev, confirmMsg]);
-      } else {
-        const demandData = data as Partial<Demand>;
-        const newDemand = await apiService.postDemand({
-          id: `d-${Date.now()}`,
-          ...demandData,
-          buyerId: '0xCurrentUser',
-          timestamp: Date.now(),
-          avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
-        });
-        setDemands(prev => [newDemand, ...prev]);
-        
-        // 添加确认消息到聊天记录
-        const setMsgs = role === UserRole.BUYER ? setBuyerMessages : setSellerMessages;
-        const confirmMsg: ChatMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `✅ Demand card posted successfully! "${demandData.title}" is now visible to service providers.`,
-          timestamp: Date.now()
-        };
-        setMsgs(prev => [...prev, confirmMsg]);
-      }
-    } catch (error) {
-      console.error('Error creating card:', error);
-      const setMsgs = role === UserRole.BUYER ? setBuyerMessages : setSellerMessages;
-      const errorMsg: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: '❌ Sorry, there was an error creating your card. Please try again.',
-        timestamp: Date.now()
-      };
-      setMsgs(prev => [...prev, errorMsg]);
-    }
-  };
-
   const renderContent = () => {
     switch (view) {
       case 'home': 
@@ -394,7 +337,7 @@ const App: React.FC = () => {
              </div>
           </footer>
         </main>
-        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden bg-white/80 backdrop-blur-3xl shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] ${sidebarOpen ? 'w-[400px] border-l border-black/5' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} onConfirmCard={handleConfirmCard} isLoading={isLoading} className="h-full" /></div></aside>
+        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden bg-white/80 backdrop-blur-3xl shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] ${sidebarOpen ? 'w-[400px] border-l border-black/5' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} isLoading={isLoading} className="h-full" /></div></aside>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`fixed top-1/2 -translate-y-1/2 z-50 transition-all duration-500 flex items-center justify-center group ${sidebarOpen ? 'right-[400px]' : 'right-0'}`} aria-label="Toggle AI Agent"><div className={`flex items-center gap-2 px-3 py-6 rounded-l-3xl shadow-2xl border-y border-l transition-all ${sidebarOpen ? 'bg-white border-black/5 text-slate-400 hover:text-blue-600' : 'bg-slate-900 border-white/10 text-white hover:bg-blue-600 translate-x-1 hover:translate-x-0'}`}><div className="flex flex-col items-center gap-1"><span className={`text-[10px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-opacity ${sidebarOpen ? 'opacity-40' : 'opacity-100'}`}>{sidebarOpen ? 'CLOSE' : 'AGENT'}</span><svg className={`w-5 h-5 mt-2 transition-transform duration-500 ${sidebarOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg></div></div></button>
       </div>
     </div>
