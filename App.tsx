@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   UserRole, 
   OrderStatus, 
@@ -36,10 +36,11 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('home');
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
-  // Wallet state from wagmi
+   const [dataLoading, setDataLoading] = useState(true);
+   const [refreshTrigger, setRefreshTrigger] = useState(0);
+   const isInitialLoad = useRef(true);
+   
+   // Wallet state from wagmi
   const { address, isConnected, chainId: currentChainId } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
@@ -69,82 +70,86 @@ const App: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(false);
 
-   // Load data from backend on startup
-   useEffect(() => {
-     const loadData = async () => {
-       setDataLoading(true);
-       try {
-         const [servicesData, demandsData, agentsRaw] = await Promise.all([
-           apiService.getServices(),
-           apiService.getDemands(),
-           apiService.getErc8004Agents().catch(() => []),
-         ]);
+    // Load data from backend on startup
+    useEffect(() => {
+      const loadData = async () => {
+        // Only show loading spinner on initial load
+        if (isInitialLoad.current) {
+          setDataLoading(true);
+        }
+        try {
+          const [servicesData, demandsData, agentsRaw] = await Promise.all([
+            apiService.getServices(),
+            apiService.getDemands(),
+            apiService.getErc8004Agents().catch(() => []),
+          ]);
 
-         // agentsRaw may be { items: [...], source, total } or just an array
-         const agentItems: any[] = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as any)?.items || []);
+          // agentsRaw may be { items: [...], source, total } or just an array
+          const agentItems: any[] = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as any)?.items || []);
 
-         // Build lookup: ownerWalletLower → agent
-         const agentsByOwner = new Map<string, any>();
-         for (const agent of agentItems) {
-           if (agent.owner) {
-             agentsByOwner.set(agent.owner.toLowerCase(), agent);
-           }
-         }
+          // Build lookup: ownerWalletLower → agent
+          const agentsByOwner = new Map<string, any>();
+          for (const agent of agentItems) {
+            if (agent.owner) {
+              agentsByOwner.set(agent.owner.toLowerCase(), agent);
+            }
+          }
 
-         // Enrich existing services with reputation info from matching agents
-         const enrichedServices = servicesData.map((s: Service) => {
-           const agent = agentsByOwner.get(s.sellerId.toLowerCase());
-           if (agent) {
-             agentsByOwner.delete(s.sellerId.toLowerCase());
-             return {
-               ...s,
+          // Enrich existing services with reputation info from matching agents
+          const enrichedServices = servicesData.map((s: Service) => {
+            const agent = agentsByOwner.get(s.sellerId.toLowerCase());
+            if (agent) {
+              agentsByOwner.delete(s.sellerId.toLowerCase());
+              return {
+                ...s,
+                reputation: {
+                  agentId: agent.id,
+                  averageRating: 0,
+                  reviewCount: 0,
+                  verified: true,
+                },
+              };
+            }
+            return s;
+          });
+
+           // Create synthetic Service objects for agents without backend services
+           const syntheticServices: Service[] = [];
+           agentsByOwner.forEach((agent, ownerLower) => {
+             const meta = agent.metadata || agent;
+             // Ensure location is always a string; if it's an object (e.g., { lat, lng }), fall back to default
+             const locationValue = meta.location;
+             const locationStr = typeof locationValue === 'string' ? locationValue : 'Chiang Mai';
+             syntheticServices.push({
+               id: `agent-${agent.id}`,
+               sellerId: agent.owner || ownerLower,
+               title: meta.name || `Agent #${agent.id}`,
+               description: meta.description || 'On-chain registered agent',
+               category: meta.category || 'general',
+               location: locationStr,
+               price: meta.pricing ? parseFloat(String(meta.pricing).replace(/[^0-9.]/g, '')) || 10 : 10,
+               unit: 'USDC',
                reputation: {
                  agentId: agent.id,
                  averageRating: 0,
                  reviewCount: 0,
                  verified: true,
                },
-             };
-           }
-           return s;
-         });
+             });
+           });
 
-          // Create synthetic Service objects for agents without backend services
-          const syntheticServices: Service[] = [];
-          agentsByOwner.forEach((agent, ownerLower) => {
-            const meta = agent.metadata || agent;
-            // Ensure location is always a string; if it's an object (e.g., { lat, lng }), fall back to default
-            const locationValue = meta.location;
-            const locationStr = typeof locationValue === 'string' ? locationValue : 'Chiang Mai';
-            syntheticServices.push({
-              id: `agent-${agent.id}`,
-              sellerId: agent.owner || ownerLower,
-              title: meta.name || `Agent #${agent.id}`,
-              description: meta.description || 'On-chain registered agent',
-              category: meta.category || 'general',
-              location: locationStr,
-              price: meta.pricing ? parseFloat(String(meta.pricing).replace(/[^0-9.]/g, '')) || 10 : 10,
-              unit: 'USDC',
-              reputation: {
-                agentId: agent.id,
-                averageRating: 0,
-                reviewCount: 0,
-                verified: true,
-              },
-            });
-          });
-
-         setServices([...enrichedServices, ...syntheticServices]);
-         setDemands(demandsData);
-         console.log(`Loaded ${servicesData.length} services, ${demandsData.length} demands, ${agentItems.length} agents`);
-       } catch (error) {
-         console.error('Failed to load data from backend:', error);
-       } finally {
-         setDataLoading(false);
-       }
-      };
-      loadData();
-    }, [refreshTrigger]);
+          setServices([...enrichedServices, ...syntheticServices]);
+          setDemands(demandsData);
+          console.log(`Loaded ${servicesData.length} services, ${demandsData.length} demands, ${agentItems.length} agents`);
+        } catch (error) {
+          console.error('Failed to load data from backend:', error);
+        } finally {
+          setDataLoading(false);
+          isInitialLoad.current = false;
+        }
+       };
+       loadData();
+     }, [refreshTrigger]);
 
    useEffect(() => {
      if (booking.bookingResult) {
@@ -654,8 +659,8 @@ Answer customer questions based on the above information. Be helpful, concise, a
   // handleConfirmCard 已移除 - 现在只通过AI的create动作来创建卡片，避免重复创建
 
   const renderContent = () => {
-    // Show loading state
-    if (dataLoading) {
+    // Show loading state only on initial load (no data yet)
+    if (dataLoading && services.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
           <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center animate-pulse">

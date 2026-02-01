@@ -10,6 +10,8 @@ import {
   type RegisterAgentResult,
 } from '../services/erc8004WriteService';
 
+const STORAGE_KEY = 'locallife_registration_result';
+
 const erc721TransferAbi = [{
   type: 'event',
   name: 'Transfer',
@@ -39,12 +41,20 @@ export interface UseAgentRegistrationReturn {
 export function useAgentRegistration(): UseAgentRegistrationReturn {
   const wallet = useWalletAdapter();
   const [isRegistering, setIsRegistering] = useState(false);
-  const [result, setResult] = useState<(RegisterAgentResult & { agentURI: string; agentId?: string | null }) | null>(null);
+  const [result, setResult] = useState<(RegisterAgentResult & { agentURI: string; agentId?: string | null }) | null>(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [error, setError] = useState<string | null>(null);
 
   const reset = useCallback(() => {
     setResult(null);
     setError(null);
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
   }, []);
 
   const register = useCallback(
@@ -107,23 +117,25 @@ export function useAgentRegistration(): UseAgentRegistrationReturn {
           console.warn('[useAgentRegistration] Could not extract agentId from receipt:', err);
         }
 
-        // Best-effort: backfill agentId to backend
-        if (agentId) {
-          try {
-            await fetch(
-              `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/erc8004/register/${wallet.address}/backfill`,
-              {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ agentId }),
-              },
-            );
-          } catch {
-            /* best-effort */
-          }
-        }
+         // Best-effort: backfill agentId to backend
+         if (agentId) {
+           try {
+             await fetch(
+               `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/erc8004/register/${wallet.address}/backfill`,
+               {
+                 method: 'PATCH',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ agentId }),
+               },
+             );
+           } catch {
+             /* best-effort */
+           }
+         }
 
-        setResult({ ...txResult, agentURI: backendResult.agentURI, agentId });
+         const resultData = { ...txResult, agentURI: backendResult.agentURI, agentId };
+         setResult(resultData);
+         try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(resultData)); } catch {}
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'Registration failed';
         console.error('[useAgentRegistration] Error:', e);
