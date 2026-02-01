@@ -27,6 +27,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const [isAgentStarted, setIsAgentStarted] = useState(true);
   const [modelId, setModelId] = useState('gemini-3-flash-preview');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,11 +35,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages]);
 
+  // 自适应输入框高度
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // 重置高度以获取正确的 scrollHeight
+      textarea.style.height = 'auto';
+      // 计算新高度，最小高度为一行，最大高度为6行（约144px）
+      const scrollHeight = textarea.scrollHeight;
+      const minHeight = 48; // py-3.5 (14px * 2) + 文本行高约20px
+      const maxHeight = 144; // 约6行
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      textarea.style.height = `${newHeight}px`;
+      // 如果超过最大高度，显示滚动条
+      textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }
+  }, [input]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     onSendMessage(input, modelId);
     setInput('');
+    // 重置输入框高度
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
   const handleStartAgent = () => {
@@ -112,19 +134,34 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-6 bg-white/20 border-t border-black/5 shrink-0">
-        <div className="relative flex items-center group">
-          <input
-            type="text"
+        <div className="relative flex items-end group">
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter 提交，Shift+Enter 换行
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!input.trim() || isLoading) return;
+                onSendMessage(input, modelId);
+                setInput('');
+                // 重置输入框高度
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = 'auto';
+                }
+              }
+            }}
             disabled={isLoading || !isAgentStarted}
             placeholder={isAgentStarted ? placeholder : "Agent offline..."}
-            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-xs font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/30 text-black transition-all"
+            rows={1}
+            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 pr-12 text-xs font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/30 text-black transition-all resize-none overflow-hidden"
+            style={{ minHeight: '48px', maxHeight: '144px' }}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim() || !isAgentStarted}
-            className="absolute right-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-200 text-white w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-md"
+            className="absolute right-2 bottom-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-200 text-white w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-md"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14M12 5l7 7-7 7" />
