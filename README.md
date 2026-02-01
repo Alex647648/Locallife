@@ -2,7 +2,7 @@
 
 > **Decentralized Local Service Coordination via AI-Driven Agentic Flows & X402 Asset Standards.**
 
-LocalLife 是一个下一代点对点 (P2P) 协议，旨在将现实世界服务代币化并实现无需信任的自动化结算。专为 **ETHGlobal 2026** 生态系统构建，它弥合了非结构化本地需求与链上流动性之间的差距。
+LocalLife 是一个下一代点对点 (P2P) 协议，旨在将现实世界服务代币化并实现无需信任的自动化结算。专为 **ETHChiangmai** 生态系统构建，它弥合了非结构化本地需求与链上流动性之间的差距。
 
 ---
 
@@ -343,7 +343,7 @@ Locallife/
 
 ## 📄 许可证
 
-本项目为 ETHGlobal 2026 黑客松项目。
+本项目为 ETHChiangmai 黑客松项目。
 
 ---
 
@@ -357,4 +357,4 @@ LocalLife 坚持 Web3 的核心精神：
 
 ---
 
-*Built for ETHGlobal 2026*
+*Built for ETHChiangmai*

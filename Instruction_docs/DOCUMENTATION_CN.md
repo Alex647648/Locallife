@@ -1,7 +1,7 @@
 # LocalLife 协议文档
 
 ## 1. 项目概述
-**LocalLife** 是一个为 ETHGlobal 黑客松打造的去中心化本地服务协作协议。它利用 AI Agent 作为主要用户交互界面，通过 **X402 代币标准** 和 **智能托管 (Smart Escrow)** 结算层将现实世界服务与区块链连接起来。
+**LocalLife** 是一个为 ETHChiangmai 黑客松打造的去中心化本地服务协作协议。它利用 AI Agent 作为主要用户交互界面，通过 **X402 代币标准** 和 **智能托管 (Smart Escrow)** 结算层将现实世界服务与区块链连接起来。
 
 ---
 
@@ -86,4 +86,4 @@ export const parseServiceJson = async (text: string): Promise<ServiceParams | nu
 3.  **结算 (Settlement)**: 履约证明触发资金释放或争议处理。
 
 ---
-*Built for ETHGlobal 2026*
+*Built for ETHChiangmai*

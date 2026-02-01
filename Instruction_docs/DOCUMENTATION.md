@@ -1,7 +1,7 @@
 # LocalLife Protocol Documentation
 
 ## 1. Project Overview
-**LocalLife** is a decentralized local service coordination protocol built for the ETHGlobal hackathon. It utilizes AI Agents as the primary user interface to bridge real-world services with the blockchain via the **X402 token standard** and **Smart Escrow** settlement layers.
+**LocalLife** is a decentralized local service coordination protocol built for the ETHChiangmai hackathon. It utilizes AI Agents as the primary user interface to bridge real-world services with the blockchain via the **X402 token standard** and **Smart Escrow** settlement layers.
 
 ---
 
@@ -86,4 +86,4 @@ A non-custodial logic flow:
 3.  **Settlement**: Proof-of-Fulfillment triggers fund release.
 
 ---
-*Built for ETHGlobal 2026*
+*Built for ETHChiangmai*

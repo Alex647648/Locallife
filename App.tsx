@@ -242,12 +242,21 @@ const App: React.FC = () => {
             setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Demand card created successfully!' } : m));
           } else if (actionData.action === 'create_service') {
             // User confirmed, create the service card
+            // 自动生成配图
+            const { generateServiceImageUrl } = await import('./utils/imageGenerator');
+            const autoImageUrl = generateServiceImageUrl({
+              title: actionData.data.title || '',
+              description: actionData.data.description,
+              category: actionData.data.category || '',
+              location: actionData.data.location
+            });
+            
             const newService = await apiService.createService({
               id: `s-${Date.now()}`,
               ...actionData.data,
               sellerId: '0xCurrentUser',
               tokenAddress: `0x${Date.now().toString(16)}`,
-              imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=800&auto=format&fit=crop',
+              imageUrl: autoImageUrl,
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
             });
             setServices(prev => [newService, ...prev]);
