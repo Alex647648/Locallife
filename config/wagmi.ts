@@ -1,12 +1,22 @@
 import { http, createConfig } from 'wagmi';
-import { sepolia, baseSepolia } from 'wagmi/chains';
+import { mainnet, sepolia, baseSepolia } from 'wagmi/chains';
+import { metaMask, coinbaseWallet, walletConnect, injected } from 'wagmi/connectors';
 
-// Wagmi config for Dynamic SDK
-// Supports both Ethereum Sepolia (ERC-8004) and Base Sepolia (x402 payments)
+// WalletConnect project ID — get one free at https://cloud.walletconnect.com
+const WC_PROJECT_ID = '8b3cc0c991ab9eed5dd4a1c6c4b49eb9';
+
+// Wagmi config — plain wagmi, no Dynamic SDK
+// Supports Ethereum Mainnet (default MetaMask chain), Sepolia (ERC-8004), and Base Sepolia (x402 payments)
 export const wagmiConfig = createConfig({
-  chains: [sepolia, baseSepolia],
-  multiInjectedProviderDiscovery: false, // Dynamic handles wallet discovery
+  chains: [mainnet, sepolia, baseSepolia],
+  connectors: [
+    metaMask(),                                             // MetaMask SDK (works even without window.ethereum)
+    coinbaseWallet({ appName: 'LocalLife' }),                // Coinbase Wallet SDK
+    walletConnect({ projectId: WC_PROJECT_ID }),             // WalletConnect v2 (mobile wallets)
+    injected(),                                             // Fallback: any injected provider
+  ],
   transports: {
+    [mainnet.id]: http(),
     [sepolia.id]: http(),
     [baseSepolia.id]: http(),
   },

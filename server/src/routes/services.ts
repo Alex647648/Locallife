@@ -25,11 +25,12 @@ const createServiceSchema = z.object({
 // GET /api/v1/services - Get all services with optional filtering
 servicesRouter.get('/', (req: Request, res: Response) => {
   try {
-    const { category, location } = req.query;
+    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+    const location = typeof req.query.location === 'string' ? req.query.location : undefined;
     
     const services = dataStore.getServices({
-      category: category as string | undefined,
-      location: location as string | undefined
+      category,
+      location
     });
     
     res.json({
@@ -51,7 +52,7 @@ servicesRouter.get('/', (req: Request, res: Response) => {
 // GET /api/v1/services/:id - Get specific service
 servicesRouter.get('/:id', (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = typeof req.params.id === 'string' ? req.params.id : '';
     const service = dataStore.getServiceById(id);
     
     if (!service) {
@@ -80,14 +81,14 @@ servicesRouter.post('/', (req: Request, res: Response) => {
   try {
     const validationResult = createServiceSchema.safeParse(req.body);
     
-    if (!validationResult.success) {
-      return res.status(422).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid input data',
-        details: validationResult.error.errors
-      });
-    }
+     if (!validationResult.success) {
+       return res.status(422).json({
+         success: false,
+         error: 'VALIDATION_ERROR',
+         message: 'Invalid input data',
+         details: validationResult.error.issues
+       });
+     }
     
     const serviceData = validationResult.data;
     const newService: Service = {
@@ -113,7 +114,7 @@ servicesRouter.post('/', (req: Request, res: Response) => {
 // DELETE /api/v1/services/:id - Delete a service
 servicesRouter.delete('/:id', (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = typeof req.params.id === 'string' ? req.params.id : '';
     const deleted = dataStore.deleteService(id);
     
     if (!deleted) {

@@ -1,7 +1,7 @@
 
 import { Service, Demand, Order, OrderStatus } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 /**
  * Standard API Response Wrapper
@@ -39,11 +39,11 @@ export const apiService = {
   // --- Services (X402 Assets) ---
   async getServices(category?: string): Promise<Service[]> {
     try {
-      const url = new URL(`${API_BASE}/services`);
+      let url = `${API_BASE}/services`;
       if (category) {
-        url.searchParams.append('category', category);
+        url += `?category=${encodeURIComponent(category)}`;
       }
-      const response = await fetch(url.toString());
+      const response = await fetch(url);
       return await handleResponse<Service[]>(response);
     } catch (error) {
       console.error('[API] Error fetching services:', error);

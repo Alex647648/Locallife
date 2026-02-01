@@ -178,14 +178,18 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({ orderId, agentId, onDismi
            {(agentId || agentIdInput) && <> | Agent ID: <span className="font-mono font-bold">{agentId || agentIdInput}</span></>}
          </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700">
-            {error}
-            <button onClick={reset} className="ml-2 underline font-bold">Dismiss</button>
-          </div>
-        )}
+         {error && (
+           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-700">
+             {error}
+             <button onClick={reset} className="ml-2 underline font-bold">Dismiss</button>
+           </div>
+         )}
 
-         <button
+         <div className="text-[10px] text-amber-600 bg-amber-50 rounded-xl p-3">
+           ⚠️ ERC-8004 prohibits self-reviews. Agent owners/operators cannot rate their own agents.
+         </div>
+
+          <button
            type="submit"
            disabled={isSubmitting || (!agentId && (!agentIdInput || agentIdError !== ''))}
            className="w-full py-4 bg-slate-900 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-blue-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"

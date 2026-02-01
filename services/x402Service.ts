@@ -3,7 +3,9 @@ import { x402HTTPClient } from '@x402/core/http';
 import { ExactEvmScheme } from '@x402/evm';
 import type { EIP1193Provider } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
+// Frontend uses Vite dev server proxying `/api/*` to backend.
+// In production monolith, backend serves the frontend and `/api/*` on same origin.
+const API_BASE = '/api/v1';
 const BASE_SEPOLIA_CHAIN_ID = 84532;
 
 export interface BookingResult {
@@ -77,7 +79,7 @@ export async function x402Fulfill(
   const coreClient = new x402Client().register('eip155:*', new ExactEvmScheme(signer));
   const httpClient = new x402HTTPClient(coreClient);
 
-  const fulfillUrl = `${API_BASE}/orders/${encodeURIComponent(orderId)}/fulfill`;
+  const fulfillUrl = `${API_BASE}/orders/x402/${encodeURIComponent(orderId)}/fulfill`;
 
   const initialResponse = await fetch(fulfillUrl, {
     method: 'POST',

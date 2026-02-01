@@ -21,11 +21,12 @@ const createDemandSchema = z.object({
 // GET /api/v1/demands - Get all demands
 demandsRouter.get('/', (req: Request, res: Response) => {
   try {
-    const { category, location } = req.query;
+    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+    const location = typeof req.query.location === 'string' ? req.query.location : undefined;
     
     const demands = dataStore.getDemands({
-      category: category as string | undefined,
-      location: location as string | undefined
+      category,
+      location
     });
     
     res.json({
@@ -47,7 +48,7 @@ demandsRouter.get('/', (req: Request, res: Response) => {
 // GET /api/v1/demands/:id - Get specific demand
 demandsRouter.get('/:id', (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = typeof req.params.id === 'string' ? req.params.id : '';
     const demand = dataStore.getDemandById(id);
     
     if (!demand) {
@@ -76,14 +77,14 @@ demandsRouter.post('/', (req: Request, res: Response) => {
   try {
     const validationResult = createDemandSchema.safeParse(req.body);
     
-    if (!validationResult.success) {
-      return res.status(422).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid input data',
-        details: validationResult.error.errors
-      });
-    }
+     if (!validationResult.success) {
+       return res.status(422).json({
+         success: false,
+         error: 'VALIDATION_ERROR',
+         message: 'Invalid input data',
+         details: validationResult.error.issues
+       });
+     }
     
     const demandData = validationResult.data;
     const newDemand: Demand = {
@@ -110,7 +111,7 @@ demandsRouter.post('/', (req: Request, res: Response) => {
 // DELETE /api/v1/demands/:id - Delete a demand
 demandsRouter.delete('/:id', (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = typeof req.params.id === 'string' ? req.params.id : '';
     const deleted = dataStore.deleteDemand(id);
     
     if (!deleted) {

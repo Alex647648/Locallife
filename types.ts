@@ -30,6 +30,7 @@ export interface Service {
   avatarUrl?: string; // Service provider avatar
   lat?: number; // Latitude for map positioning
   lng?: number; // Longitude for map positioning
+  reputation?: ReputationSummary;
 }
 
 export interface Demand {
@@ -71,4 +72,46 @@ export interface AgentResponse {
 
 export interface EIP1193Provider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
+}
+
+// === ERC-8004 Agent Identity & Reputation Types ===
+
+export interface ERC8004Agent {
+  id: string;             // on-chain token ID
+  owner: string;          // wallet address of agent owner
+  agentURI: string;       // HTTP or IPFS URI to registration.json
+  name: string;
+  description: string;
+  category?: string;
+  location?: string;
+  pricing?: string;
+  protocols?: string[];   // e.g. ['a2a', 'mcp']
+  createdAt?: string;
+}
+
+export interface ERC8004Feedback {
+  id: string;
+  agentId: string;
+  sender: string;         // reviewer wallet
+  value: number;          // decoded rating value (e.g. 20, 40, 60, 80, 100)
+  valueDecimals: number;
+  tag1: string;           // e.g. "starred"
+  tag2: string;           // e.g. "locallife"
+  feedbackURI: string;
+  feedbackHash: string;
+  timestamp?: number;
+  comment?: string;       // from feedbackURI content
+}
+
+export interface ERC8004AgentStats {
+  totalReviews: number;
+  averageRating: number;  // 1-5 scale (derived from value/20)
+  totalFeedbackValue: number;
+}
+
+export interface ReputationSummary {
+  agentId: string;
+  averageRating: number;  // 1-5 scale
+  reviewCount: number;
+  verified: boolean;      // whether agent is on-chain registered
 }

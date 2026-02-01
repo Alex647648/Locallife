@@ -3,16 +3,20 @@ import { useAgentRegistration, type RegistrationInput } from '../hooks/useAgentR
 import { useWalletAdapter } from '../hooks/useWalletAdapter';
 import { SEPOLIA_CHAIN_ID } from '../services/erc8004WriteService';
 
-const AgentRegistrationPanel: React.FC = () => {
+interface AgentRegistrationPanelProps {
+  prefillData?: Partial<RegistrationInput>;
+}
+
+const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefillData }) => {
   const wallet = useWalletAdapter();
   const { register, isRegistering, result, error, reset } = useAgentRegistration();
 
   const [form, setForm] = useState<RegistrationInput>({
-    name: '',
-    description: '',
-    category: 'general',
-    location: '',
-    pricing: '',
+    name: prefillData?.name || '',
+    description: prefillData?.description || '',
+    category: prefillData?.category || 'general',
+    location: prefillData?.location || '',
+    pricing: prefillData?.pricing || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,6 +39,16 @@ const AgentRegistrationPanel: React.FC = () => {
             <p className="text-xs text-emerald-600 font-mono mt-1">Tx: {result.txHash.slice(0, 16)}...{result.txHash.slice(-8)}</p>
           </div>
         </div>
+        {result.agentId && (
+          <div className="bg-emerald-100/50 rounded-xl p-3 mt-3">
+            <p className="text-xs font-bold text-emerald-800">
+              Your Agent ID: <span className="font-mono text-lg">{result.agentId}</span>
+            </p>
+            <p className="text-[10px] text-emerald-600 mt-1">
+              Save this ID — buyers will use it to leave you on-chain feedback.
+            </p>
+          </div>
+        )}
         <p className="text-sm text-emerald-700">Your agent identity is now on Sepolia via ERC-8004 IdentityRegistry.</p>
         <div className="flex gap-3">
           <a

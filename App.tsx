@@ -26,8 +26,7 @@ import BackgroundEffect from './components/BackgroundEffect';
 import { useBooking } from './hooks/useBooking';
 import AgentRegistrationPanel from './components/AgentRegistrationPanel';
 import FeedbackPanel from './components/FeedbackPanel';
-import { DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 
 type ViewType = 'home' | 'explore' | 'offer' | 'docs' | 'x402' | 'escrow';
 
@@ -37,9 +36,12 @@ const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
   
-  // Real wallet state from Dynamic SDK
-  const { setShowAuthFlow, primaryWallet, user } = useDynamicContext();
-  const { address, isConnected } = useAccount();
+  // Wallet state from wagmi
+  const { address, isConnected, chainId: currentChainId } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { switchChain } = useSwitchChain();
+  const [showWalletModal, setShowWalletModal] = useState(false);
   
   // Format wallet address for display
   const formattedAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
@@ -50,8 +52,9 @@ const App: React.FC = () => {
   
   const [focusedItem, setFocusedItem] = useState<any | null>(null);
 
-  const booking = useBooking();
-  const [feedbackTarget, setFeedbackTarget] = useState<{ orderId: string; agentId?: string } | null>(null);
+   const booking = useBooking();
+   const [feedbackTarget, setFeedbackTarget] = useState<{ orderId: string; agentId?: string } | null>(null);
+   const [pendingAgentId, setPendingAgentId] = useState<string | null>(null);
 
   const [buyerMessages, setBuyerMessages] = useState<ChatMessage[]>([
     { id: '1', role: 'assistant', content: 'So nice to see you here! What do you want to explore today?', timestamp: Date.now() }
@@ -62,33 +65,90 @@ const App: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load data from backend on startup
-  useEffect(() => {
-    const loadData = async () => {
-      setDataLoading(true);
-      try {
-        const [servicesData, demandsData] = await Promise.all([
-          apiService.getServices(),
-          apiService.getDemands()
-        ]);
-        setServices(servicesData);
-        setDemands(demandsData);
-        console.log(`✅ Loaded ${servicesData.length} services, ${demandsData.length} demands from backend`);
-      } catch (error) {
-        console.error('Failed to load data from backend:', error);
-      } finally {
-        setDataLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+   // Load data from backend on startup
+   useEffect(() => {
+     const loadData = async () => {
+       setDataLoading(true);
+       try {
+         const [servicesData, demandsData, agentsRaw] = await Promise.all([
+           apiService.getServices(),
+           apiService.getDemands(),
+           apiService.getErc8004Agents().catch(() => []),
+         ]);
 
-  useEffect(() => {
-    if (booking.bookingResult) {
-      setFeedbackTarget({ orderId: booking.bookingResult.orderId });
-      booking.reset();
-    }
-  }, [booking.bookingResult]);
+         // agentsRaw may be { items: [...], source, total } or just an array
+         const agentItems: any[] = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as any)?.items || []);
+
+         // Build lookup: ownerWalletLower → agent
+         const agentsByOwner = new Map<string, any>();
+         for (const agent of agentItems) {
+           if (agent.owner) {
+             agentsByOwner.set(agent.owner.toLowerCase(), agent);
+           }
+         }
+
+         // Enrich existing services with reputation info from matching agents
+         const enrichedServices = servicesData.map((s: Service) => {
+           const agent = agentsByOwner.get(s.sellerId.toLowerCase());
+           if (agent) {
+             agentsByOwner.delete(s.sellerId.toLowerCase());
+             return {
+               ...s,
+               reputation: {
+                 agentId: agent.id,
+                 averageRating: 0,
+                 reviewCount: 0,
+                 verified: true,
+               },
+             };
+           }
+           return s;
+         });
+
+          // Create synthetic Service objects for agents without backend services
+          const syntheticServices: Service[] = [];
+          agentsByOwner.forEach((agent, ownerLower) => {
+            const meta = agent.metadata || agent;
+            // Ensure location is always a string; if it's an object (e.g., { lat, lng }), fall back to default
+            const locationValue = meta.location;
+            const locationStr = typeof locationValue === 'string' ? locationValue : 'Chiang Mai';
+            syntheticServices.push({
+              id: `agent-${agent.id}`,
+              sellerId: agent.owner || ownerLower,
+              title: meta.name || `Agent #${agent.id}`,
+              description: meta.description || 'On-chain registered agent',
+              category: meta.category || 'general',
+              location: locationStr,
+              price: meta.pricing ? parseFloat(String(meta.pricing).replace(/[^0-9.]/g, '')) || 10 : 10,
+              unit: 'USDC',
+              reputation: {
+                agentId: agent.id,
+                averageRating: 0,
+                reviewCount: 0,
+                verified: true,
+              },
+            });
+          });
+
+         setServices([...enrichedServices, ...syntheticServices]);
+         setDemands(demandsData);
+         console.log(`Loaded ${servicesData.length} services, ${demandsData.length} demands, ${agentItems.length} agents`);
+       } catch (error) {
+         console.error('Failed to load data from backend:', error);
+       } finally {
+         setDataLoading(false);
+       }
+     };
+     loadData();
+   }, []);
+
+   useEffect(() => {
+     if (booking.bookingResult) {
+       setFeedbackTarget({ orderId: booking.bookingResult.orderId, agentId: pendingAgentId || undefined });
+       setPendingAgentId(null);
+       booking.reset();
+     }
+   }, [booking.bookingResult, pendingAgentId]);
 
   useEffect(() => {
     if (booking.error) {
@@ -97,8 +157,8 @@ const App: React.FC = () => {
     }
   }, [booking.error]);
 
-  // Open Dynamic's wallet connection modal
-  const connectWallet = () => setShowAuthFlow(true);
+  // Open wallet picker modal
+  const connectWallet = () => setShowWalletModal(true);
 
   const navigateToDashboard = (targetRole: UserRole) => {
     setRole(targetRole);
@@ -525,14 +585,17 @@ const App: React.FC = () => {
     }, 100);
   };
 
-  const handleAction = async (item: any) => {
-    if (!isConnected) { setShowAuthFlow(true); return; }
-    if (role === UserRole.BUYER) {
-      await booking.book(item.id, item.price || 0);
-    } else {
-      alert(`Response sent to: ${item.title}`);
-    }
-  };
+   const handleAction = async (item: any) => {
+     if (!isConnected) { connectWallet(); return; }
+     if (role === UserRole.BUYER) {
+       if (item.reputation?.agentId) {
+         setPendingAgentId(item.reputation.agentId);
+       }
+       await booking.book(item.id, item.price || 0);
+     } else {
+       alert(`Response sent to: ${item.title}`);
+     }
+   };
 
   // handleConfirmCard 已移除 - 现在只通过AI的create动作来创建卡片，避免重复创建
 
@@ -582,6 +645,35 @@ const App: React.FC = () => {
   return (
     <div className="relative selection:bg-blue-100 selection:text-blue-900">
       <BackgroundEffect />
+      {/* Wallet connector picker modal */}
+      {showWalletModal && (
+        <div className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowWalletModal(false)}>
+          <div className="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Connect Wallet</h3>
+            <p className="text-xs text-slate-400 mb-6">Choose a wallet to connect to LocalLife</p>
+            <div className="space-y-3">
+              {connectors.map((connector) => (
+                <button
+                  key={connector.uid}
+                  onClick={() => { connect({ connector }); setShowWalletModal(false); }}
+                  className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all text-left group"
+                >
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg group-hover:bg-blue-100 transition-colors">
+                    {connector.name.includes('MetaMask') ? '🦊' : connector.name.includes('Coinbase') ? '🔵' : connector.name.includes('WalletConnect') ? '🔗' : '💎'}
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">{connector.name}</div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-widest">{connector.type}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowWalletModal(false)} className="w-full mt-4 py-3 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {booking.isBooking && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center">
           <div className="bg-white rounded-3xl p-10 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
@@ -623,14 +715,30 @@ const App: React.FC = () => {
               <span>{demands.length} demands</span>
             </div>
           )}
-          {/* Dynamic Wallet Widget - handles MetaMask, Coinbase, embedded wallets */}
-          <DynamicWidget 
-            innerButtonComponent={
-              <button className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-black/10">
-                {isConnected ? formattedAddress : 'Connect Wallet'}
+          {/* Network switcher + wallet button */}
+          {isConnected && currentChainId && (
+            <div className="relative group">
+              <button className="px-4 py-2.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest border transition-all bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600">
+                {currentChainId === 11155111 ? 'Sepolia' : currentChainId === 84532 ? 'Base Sepolia' : currentChainId === 1 ? 'Ethereum' : `Chain ${currentChainId}`}
               </button>
-            }
-          />
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100 py-2 min-w-[160px] hidden group-hover:block z-50">
+                {[{ id: 1, name: 'Ethereum' }, { id: 11155111, name: 'Sepolia' }, { id: 84532, name: 'Base Sepolia' }].map(chain => (
+                  <button key={chain.id} onClick={() => switchChain({ chainId: chain.id as 1 | 11155111 | 84532 })} className={`block w-full text-left px-4 py-2 text-xs font-semibold hover:bg-slate-50 ${currentChainId === chain.id ? 'text-blue-600' : 'text-slate-600'}`}>
+                    {currentChainId === chain.id && <span className="mr-1.5">●</span>}{chain.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {isConnected ? (
+            <button onClick={() => disconnect()} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-black/10">
+              {formattedAddress}
+            </button>
+          ) : (
+            <button onClick={connectWallet} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-black/10">
+              Connect Wallet
+            </button>
+          )}
         </div>
       </nav>
 

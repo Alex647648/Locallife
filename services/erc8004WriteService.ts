@@ -200,20 +200,17 @@ export async function giveFeedback(
 }
 
 export async function ensureSepoliaChain(
-  provider: EIP1193Provider,
+  _provider: EIP1193Provider,
   currentChainId: number | null,
   switchChain: (chainId: number) => Promise<void>,
 ): Promise<void> {
   if (currentChainId === SEPOLIA_CHAIN_ID) return;
 
-  try {
-    await provider.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: SEPOLIA_CHAIN_ID_HEX }],
-    });
-  } catch {
-    await switchChain(SEPOLIA_CHAIN_ID);
-  }
+  // Use wagmi's switchChainAsync directly — it works reliably through
+  // Dynamic SDK's connector and triggers the MetaMask chain-switch popup.
+  // The raw provider.request('wallet_switchEthereumChain') can hang when
+  // routed through Dynamic's adapter layer.
+  await switchChain(SEPOLIA_CHAIN_ID);
 }
 
 export { SEPOLIA_CHAIN_ID };

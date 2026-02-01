@@ -80,7 +80,7 @@ agentRouter.post('/chat', async (req: Request, res: Response) => {
 
 // GET /api/v1/agent/context/:contextId - Get conversation context
 agentRouter.get('/context/:contextId', (req: Request, res: Response) => {
-  const { contextId } = req.params;
+  const contextId = typeof req.params.contextId === 'string' ? req.params.contextId : '';
   const messages = conversationContexts.get(contextId) || [];
   
   res.json({
