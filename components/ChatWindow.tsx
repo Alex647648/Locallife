@@ -12,6 +12,9 @@ interface ChatWindowProps {
   isLoading: boolean;
   role: UserRole;
   onRoleChange: (role: UserRole) => void;
+  onBookService?: (service: Service) => void;
+  onAcceptDemand?: (demand: Demand) => void;
+  onLocate?: (item: Service | Demand) => void;
   placeholder?: string;
   className?: string;
 }
@@ -22,6 +25,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   isLoading, 
   role,
   onRoleChange,
+  onBookService,
+  onAcceptDemand,
+  onLocate,
   placeholder = "How can I help you today?",
   className = ""
 }) => {
@@ -272,8 +278,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     <div key={service.id} className="w-full max-w-sm">
                       <ServiceCard
                         service={service}
-                        onSelect={() => {}}
-                        onLocate={() => {}}
+                        onSelect={onBookService || (() => {})}
+                        onLocate={onLocate ? () => onLocate(service) : undefined}
                       />
                     </div>
                   ))}
@@ -337,17 +343,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                             </span>
                           </div>
                           <div className="flex gap-2 shrink-0">
+                            {onLocate && (
+                              <button 
+                                onClick={() => onLocate(demand)}
+                                className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all active:scale-95"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                              </button>
+                            )}
                             <button 
-                              onClick={() => {}}
-                              className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all active:scale-95"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                              </svg>
-                            </button>
-                            <button 
-                              onClick={() => {}}
+                              onClick={() => onAcceptDemand?.(demand)}
                               className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 shadow-md whitespace-nowrap ${
                                 demand.budget > 200 && demand.category === 'Digital' 
                                   ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/20' 
