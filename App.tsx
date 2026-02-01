@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Wallet state from wagmi
   const { address, isConnected, chainId: currentChainId } = useAccount();
@@ -141,9 +142,9 @@ const App: React.FC = () => {
        } finally {
          setDataLoading(false);
        }
-     };
-     loadData();
-   }, []);
+      };
+      loadData();
+    }, [refreshTrigger]);
 
    useEffect(() => {
      if (booking.bookingResult) {
@@ -182,14 +183,35 @@ const App: React.FC = () => {
     let relevantDemands: Demand[] = [];
     let searchContext = '';
 
-    if (role === UserRole.BUYER) {
-      // 买家模式：检索服务和需求
-      try {
-        // 获取所有服务和需求
-        const allServices = await apiService.getServices();
-        const allDemands = await apiService.getDemands();
-        
-        console.log(`[Search] Fetched ${allServices.length} services, ${allDemands.length} demands`);
+     if (role === UserRole.BUYER) {
+       // 买家模式：检索服务和需求
+       try {
+         // 获取所有服务和需求
+         const allServices = await apiService.getServices();
+         const allDemands = await apiService.getDemands();
+         
+         // Also include registered agents as searchable services
+         const agentsRaw = await apiService.getErc8004Agents().catch(() => []);
+         const agentItems: any[] = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as any)?.items || []);
+         const serviceSellerIds = new Set(allServices.map((s: any) => s.sellerId.toLowerCase()));
+         for (const agent of agentItems) {
+           if (agent.owner && !serviceSellerIds.has(agent.owner.toLowerCase())) {
+             const meta = agent.metadata || agent;
+             const locationStr = typeof meta.location === 'string' ? meta.location : 'Chiang Mai';
+             allServices.push({
+               id: `agent-${agent.id}`,
+               sellerId: agent.owner,
+               title: meta.name || `Agent #${agent.id}`,
+               description: meta.description || 'On-chain registered agent',
+               category: meta.category || 'general',
+               location: locationStr,
+               price: meta.pricing ? parseFloat(String(meta.pricing).replace(/[^0-9.]/g, '')) || 10 : 10,
+               unit: 'USDC',
+             });
+           }
+         }
+         
+         console.log(`[Search] Fetched ${allServices.length} services, ${allDemands.length} demands`);
         
         // 智能关键词提取和匹配
         const userTextLower = text.toLowerCase();
@@ -656,13 +678,13 @@ Answer customer questions based on the above information. Be helpful, concise, a
         return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} currentUserAddress={address} />;
       case 'explore': 
         return <Marketplace services={services} onBook={handleAction} onLocate={handleLocate} />;
-      case 'offer': 
-        return (
-          <div className="space-y-12">
-            <AgentRegistrationPanel />
-            <DemandsBoard demands={demands} onAccept={handleAction} onLocate={handleLocate} />
-          </div>
-        );
+       case 'offer': 
+         return (
+           <div className="space-y-12">
+             <AgentRegistrationPanel onRegistrationSuccess={() => setRefreshTrigger(t => t + 1)} />
+             <DemandsBoard demands={demands} onAccept={handleAction} onLocate={handleLocate} />
+           </div>
+         );
       case 'docs': 
         return <Documentation />;
       case 'x402': 

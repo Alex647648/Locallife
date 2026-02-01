@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAgentRegistration, type RegistrationInput } from '../hooks/useAgentRegistration';
 import { useWalletAdapter } from '../hooks/useWalletAdapter';
 import { SEPOLIA_CHAIN_ID } from '../services/erc8004WriteService';
 
 interface AgentRegistrationPanelProps {
   prefillData?: Partial<RegistrationInput>;
+  onRegistrationSuccess?: () => void;
 }
 
-const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefillData }) => {
+const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefillData, onRegistrationSuccess }) => {
   const wallet = useWalletAdapter();
   const { register, isRegistering, result, error, reset } = useAgentRegistration();
 
@@ -18,6 +19,12 @@ const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefill
     location: prefillData?.location || '',
     pricing: prefillData?.pricing || '',
   });
+
+  useEffect(() => {
+    if (result && onRegistrationSuccess) {
+      onRegistrationSuccess();
+    }
+  }, [result, onRegistrationSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
