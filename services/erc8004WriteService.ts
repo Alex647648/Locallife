@@ -151,6 +151,7 @@ export async function registerAgent(
         from: senderAddress,
         to: IDENTITY_REGISTRY,
         data: calldata,
+        gas: '0x7A120',
       },
     ],
   })) as string;
@@ -192,6 +193,7 @@ export async function giveFeedback(
         from: senderAddress,
         to: REPUTATION_REGISTRY,
         data: calldata,
+        gas: '0x7A120',
       },
     ],
   })) as string;
