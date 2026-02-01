@@ -5,10 +5,17 @@
 
 LocalLife is a decentralized local service coordination protocol that bridges physical services with on-chain liquidity. Designed for the ETHChiangmai 2026 ecosystem, it enables service providers to transform into on-chain Agents with verifiable reputations, receiving instant USDC payments via the specialized x402 protocol.
 
+## 🎬 Demo
+
+[![LocalLife Demo](https://img.youtube.com/vi/X4UyQx79SRk/maxresdefault.jpg)](https://youtu.be/X4UyQx79SRk)
+
+▶️ **[Watch the full demo on YouTube](https://youtu.be/X4UyQx79SRk)**
+
 ---
 
 ## 📋 Table of Contents
 
+- [Demo](#-demo)
 - [Core Vision](#core-vision)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
