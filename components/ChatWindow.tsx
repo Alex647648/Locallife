@@ -15,6 +15,7 @@ interface ChatWindowProps {
   onBookService?: (service: Service) => void;
   onAcceptDemand?: (demand: Demand) => void;
   onLocate?: (item: Service | Demand) => void;
+  onChatAgent?: (service: Service) => void;
   placeholder?: string;
   className?: string;
 }
@@ -28,6 +29,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onBookService,
   onAcceptDemand,
   onLocate,
+  onChatAgent,
   placeholder = "How can I help you today?",
   className = ""
 }) => {
@@ -280,6 +282,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         service={service}
                         onSelect={onBookService || (() => {})}
                         onLocate={onLocate ? () => onLocate(service) : undefined}
+                        onChatAgent={onChatAgent}
                       />
                     </div>
                   ))}
