@@ -156,39 +156,50 @@ const App: React.FC = () => {
           );
         }
 
-        // 构建搜索上下文
+        // 构建搜索上下文 - 更友好的格式，包含完整服务信息
         if (relevantServices.length > 0 || relevantDemands.length > 0) {
-          searchContext = '\n\n=== AVAILABLE SERVICES AND DEMANDS ON LOCALLIFE PLATFORM ===\n';
-          searchContext += 'You MUST only recommend items from this list. Do not suggest anything outside this platform.\n\n';
+          searchContext = '\n\n=== MATCHING SERVICES ON LOCALLIFE PLATFORM ===\n';
+          searchContext += 'I found some services that might match what the user is looking for. You should:\n';
+          searchContext += '1. Present them warmly and enthusiastically\n';
+          searchContext += '2. Use the "show_service" action to display each service card (up to 3 best matches)\n';
+          searchContext += '3. Ask if any of these match what they need\n';
+          searchContext += '4. If they say no or want something different, guide them to create a demand\n\n';
           
           if (relevantServices.length > 0) {
-            searchContext += `Found ${relevantServices.length} matching service(s) on LocalLife:\n`;
-            relevantServices.slice(0, 10).forEach((s, idx) => {
-              searchContext += `${idx + 1}. [SERVICE] "${s.title}"\n`;
-              searchContext += `   Category: ${s.category}\n`;
-              searchContext += `   Location: ${s.location}\n`;
-              searchContext += `   Price: ${s.price} ${s.unit}\n`;
-              searchContext += `   Description: ${s.description}\n\n`;
+            searchContext += `Here are ${relevantServices.length} matching service(s):\n\n`;
+            relevantServices.slice(0, 5).forEach((s, idx) => {
+              searchContext += `[SERVICE #${idx + 1}]\n`;
+              searchContext += `ID: ${s.id}\n`;
+              searchContext += `Title: "${s.title}"\n`;
+              searchContext += `Category: ${s.category}\n`;
+              searchContext += `Location: ${s.location}\n`;
+              searchContext += `Price: ${s.price} ${s.unit}\n`;
+              searchContext += `Description: ${s.description}\n`;
+              searchContext += `Image: ${s.imageUrl || 'N/A'}\n`;
+              searchContext += `Avatar: ${s.avatarUrl || 'N/A'}\n`;
+              searchContext += `\nTo show this service card, use:\n`;
+              searchContext += `{"action": "show_service", "data": {"id": "${s.id}", "title": "${s.title}", "category": "${s.category}", "description": "${s.description}", "location": "${s.location}", "price": ${s.price}, "unit": "${s.unit}", "imageUrl": "${s.imageUrl || ''}", "avatarUrl": "${s.avatarUrl || ''}"}}\n\n`;
             });
           }
           
           if (relevantDemands.length > 0) {
-            searchContext += `Found ${relevantDemands.length} matching demand(s) on LocalLife:\n`;
-            relevantDemands.slice(0, 10).forEach((d, idx) => {
-              searchContext += `${idx + 1}. [DEMAND] "${d.title}"\n`;
-              searchContext += `   Category: ${d.category}\n`;
-              searchContext += `   Location: ${d.location}\n`;
-              searchContext += `   Budget: ${d.budget} USDC\n`;
-              searchContext += `   Description: ${d.description}\n\n`;
+            searchContext += `Also found ${relevantDemands.length} related demand(s) (for reference):\n`;
+            relevantDemands.slice(0, 3).forEach((d, idx) => {
+              searchContext += `${idx + 1}. [DEMAND] "${d.title}" - ${d.category} - ${d.location} - Budget: ${d.budget} USDC\n`;
             });
+            searchContext += '\n';
           }
           
-          searchContext += 'CRITICAL: You can ONLY recommend the services and demands listed above. Never suggest services or demands that are not in this list.\n';
+          searchContext += 'IMPORTANT: You can ONLY recommend services from the list above. Use "show_service" action to display service cards. If none match, guide them to create a demand.\n';
         } else {
-          searchContext = '\n\n=== NO MATCHING SERVICES OR DEMANDS FOUND ON LOCALLIFE PLATFORM ===\n';
-          searchContext += 'After searching the LocalLife platform, no services or demands were found matching the user\'s request.\n';
-          searchContext += 'IMPORTANT: Since there are no matching services or demands on the platform, you MUST suggest the user to create a Demand card to express their need. Guide them through the process of creating a demand by asking for: Title, Category, Description, Location, and Budget.\n';
-          searchContext += 'Do not suggest services or demands from outside the LocalLife platform.\n';
+          searchContext = '\n\n=== NO MATCHING SERVICES FOUND ===\n';
+          searchContext += 'I searched the LocalLife platform but didn\'t find any services matching what the user is looking for.\n';
+          searchContext += 'This is perfectly fine! You should:\n';
+          searchContext += '1. Let them know in a friendly way: "I don\'t see anything exactly like that right now"\n';
+          searchContext += '2. Suggest creating a demand: "But we can create a request so service providers can see what you need! Want to do that?"\n';
+          searchContext += '3. If they agree, guide them through creating a demand card with simple, natural questions\n';
+          searchContext += '4. Ask for: what they need, category, description, location, and budget\n';
+          searchContext += '5. Show a preview and get confirmation before creating\n';
         }
       } catch (error) {
         console.error('Error fetching services/demands:', error);
@@ -242,7 +253,7 @@ const App: React.FC = () => {
             setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Demand card created successfully!' } : m));
           } else if (actionData.action === 'create_service') {
             // User confirmed, create the service card
-            const newService = await apiService.createService({
+             const newService = await apiService.createService({
               id: `s-${Date.now()}`,
               ...actionData.data,
               sellerId: '0xCurrentUser',

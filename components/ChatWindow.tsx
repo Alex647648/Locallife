@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, UserRole, Service, Demand } from '../types';
 import AgentSettings from './AgentSettings';
 import CardPreview from './CardPreview';
+import ServiceCard from './ServiceCard';
 
 interface ChatWindowProps {
   messages: ChatMessage[];
@@ -113,30 +114,34 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     setPreviewCard(null);
   };
 
-  // 检查最后一条助手消息中是否包含预览卡片数据
+  // 检查消息中是否包含预览卡片数据
   useEffect(() => {
     if (!isLoading) {
       const assistantMessages = messages.filter(m => m.role === 'assistant');
       const lastMessage = assistantMessages[assistantMessages.length - 1];
       if (lastMessage) {
-        const jsonMatch = lastMessage.content.match(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/);
-        if (jsonMatch && jsonMatch[1]) {
+        // 检查所有JSON块（可能有多条show_service动作）
+        const jsonMatches = lastMessage.content.matchAll(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/g);
+        let foundPreview = false;
+        
+        for (const match of jsonMatches) {
           try {
-            const actionData = JSON.parse(jsonMatch[1]);
+            const actionData = JSON.parse(match[1]);
             if (actionData.action === 'preview_service' || actionData.action === 'preview_demand') {
               setPreviewCard({
                 type: actionData.action === 'preview_service' ? 'service' : 'demand',
                 data: actionData.data
               });
-            } else {
-              // 如果不是预览动作，清除预览
-              setPreviewCard(null);
+              foundPreview = true;
+              break;
             }
           } catch (e) {
             // 忽略解析错误
           }
-        } else {
-          // 如果没有JSON，清除预览
+        }
+        
+        if (!foundPreview) {
+          // 如果没有预览动作，清除预览
           setPreviewCard(null);
         }
       }
@@ -183,14 +188,50 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.filter(m => m.role !== 'system').map((msg) => {
-          // 检查是否包含预览卡片
-          const jsonMatch = msg.content.match(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/);
-          const cleanContent = jsonMatch 
-            ? msg.content.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim()
-            : msg.content;
+          // 检查是否包含JSON动作（预览、服务卡片等）
+          const jsonMatches = Array.from(msg.content.matchAll(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/g));
+          const serviceCards: Service[] = [];
+          let hasPreview = false;
+          
+          // 提取所有服务卡片和预览动作
+          jsonMatches.forEach(match => {
+            try {
+              const actionData = JSON.parse(match[1]);
+              if (actionData.action === 'show_service') {
+                // 构建完整的Service对象
+                const service: Service = {
+                  id: actionData.data.id || `temp-${Date.now()}`,
+                  sellerId: '0xServiceProvider',
+                  title: actionData.data.title,
+                  category: actionData.data.category,
+                  description: actionData.data.description,
+                  location: actionData.data.location,
+                  price: actionData.data.price,
+                  unit: actionData.data.unit,
+                  imageUrl: actionData.data.imageUrl,
+                  avatarUrl: actionData.data.avatarUrl
+                };
+                serviceCards.push(service);
+              } else if (actionData.action === 'preview_service' || actionData.action === 'preview_demand') {
+                hasPreview = true;
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          });
+          
+          // 清理消息内容（移除JSON，但保留预览JSON用于CardPreview组件）
+          let cleanContent = msg.content;
+          if (!hasPreview) {
+            // 如果没有预览动作，移除所有JSON
+            cleanContent = msg.content.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/g, '').trim();
+          } else {
+            // 如果有预览动作，只移除show_service的JSON
+            cleanContent = msg.content.replace(/@@@JSON_START@@@[\s\S]*?"action":\s*"show_service"[\s\S]*?@@@JSON_END@@@/g, '').trim();
+          }
           
           return (
-            <div key={msg.id}>
+            <div key={msg.id} className="space-y-3">
               <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[90%] px-4 py-3 rounded-2xl ${
                   msg.role === 'user' 
@@ -206,6 +247,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   </div>
                 </div>
               </div>
+              
+              {/* 显示服务卡片 */}
+              {msg.role === 'assistant' && serviceCards.length > 0 && (
+                <div className="flex justify-start gap-4 flex-wrap">
+                  {serviceCards.map((service) => (
+                    <div key={service.id} className="w-full max-w-sm">
+                      <ServiceCard
+                        service={service}
+                        onSelect={() => {}}
+                        onLocate={() => {}}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
