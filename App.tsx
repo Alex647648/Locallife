@@ -302,32 +302,19 @@ const App: React.FC = () => {
             // Preview is handled in ChatWindow, keep the message with JSON for preview display
             // Don't remove JSON here - ChatWindow needs it to show preview
           } else if (actionData.action === 'create_demand') {
-            // User confirmed, create the demand card
-            const newDemand = await apiService.postDemand({
-              id: `d-${Date.now()}`,
-              ...actionData.data,
-              buyerId: address || '0xCurrentUser',
-              timestamp: Date.now(),
-              avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
-            });
-            setDemands(prev => [newDemand, ...prev]);
-            // Remove JSON from UI and add success message
+            // Treat create_demand same as preview_demand - show preview card
+            // Actual creation only happens when user clicks Confirm in handleConfirmCard
             const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
-            setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Demand card created successfully!' } : m));
+            setMsgs(prev => prev.map(m => m.id === assistantId 
+              ? { ...m, content: cleanText, pendingCard: { type: 'demand', data: actionData.data } } 
+              : m));
           } else if (actionData.action === 'create_service') {
-            // User confirmed, create the service card
-             const newService = await apiService.createService({
-              id: `s-${Date.now()}`,
-              ...actionData.data,
-              sellerId: address || '0xCurrentUser',
-              tokenAddress: `0x${Date.now().toString(16)}`,
-              imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=800&auto=format&fit=crop',
-              avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
-            });
-            setServices(prev => [newService, ...prev]);
-            // Remove JSON from UI and add success message
+            // Treat create_service same as preview_service - show preview card
+            // Actual creation only happens when user clicks Confirm in handleConfirmCard
             const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
-            setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Service card created successfully!' } : m));
+            setMsgs(prev => prev.map(m => m.id === assistantId 
+              ? { ...m, content: cleanText, pendingCard: { type: 'service', data: actionData.data } } 
+              : m));
           }
         } catch (e) {
           console.error("Failed to parse agent action", e);
