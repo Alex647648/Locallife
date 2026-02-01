@@ -110,26 +110,33 @@ const App: React.FC = () => {
         const locationKeywords = ['chiang mai', 'bangkok', 'phuket', 'pattaya', '清迈', '曼谷', '普吉', '芭提雅'];
         const matchedLocation = locationKeywords.find(loc => userTextLower.includes(loc));
         
+        // 提取用户查询中的关键词（用于直接匹配title和description）
+        const userKeywords = userTextLower
+          .split(/\s+/)
+          .filter(w => w.length > 2 && !['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use', 'want', 'find', 'looking'].includes(w));
+        
         // 筛选服务和需求
         if (matchedCategories.length > 0) {
+          // 先按类别匹配
           relevantServices = allServices.filter(s => 
             matchedCategories.some(cat => s.category.toLowerCase() === cat) ||
-            matchedCategories.some(cat => s.title.toLowerCase().includes(cat)) ||
-            matchedCategories.some(cat => s.description.toLowerCase().includes(cat))
+            // 同时检查title和description中是否包含用户查询的关键词
+            userKeywords.some(kw => 
+              s.title.toLowerCase().includes(kw) || 
+              s.description.toLowerCase().includes(kw)
+            )
           );
           relevantDemands = allDemands.filter(d => 
             matchedCategories.some(cat => d.category.toLowerCase() === cat) ||
-            matchedCategories.some(cat => d.title.toLowerCase().includes(cat)) ||
-            matchedCategories.some(cat => d.description.toLowerCase().includes(cat))
+            userKeywords.some(kw => 
+              d.title.toLowerCase().includes(kw) || 
+              d.description.toLowerCase().includes(kw)
+            )
           );
         } else {
           // 如果没有匹配的类别，使用全文搜索
-          const keywords = userTextLower
-            .split(/\s+/)
-            .filter(w => w.length > 2 && !['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use'].includes(w));
-          
           relevantServices = allServices.filter(s => 
-            keywords.some(kw => 
+            userKeywords.some(kw => 
               s.title.toLowerCase().includes(kw) || 
               s.description.toLowerCase().includes(kw) ||
               s.location.toLowerCase().includes(kw) ||
@@ -137,7 +144,7 @@ const App: React.FC = () => {
             )
           );
           relevantDemands = allDemands.filter(d => 
-            keywords.some(kw => 
+            userKeywords.some(kw => 
               d.title.toLowerCase().includes(kw) || 
               d.description.toLowerCase().includes(kw) ||
               d.location.toLowerCase().includes(kw) ||
@@ -158,6 +165,7 @@ const App: React.FC = () => {
 
         // 构建搜索上下文 - 更友好的格式，包含完整服务信息
         if (relevantServices.length > 0 || relevantDemands.length > 0) {
+<<<<<<< Updated upstream
           searchContext = '\n\n=== MATCHING SERVICES ON LOCALLIFE PLATFORM ===\n';
           searchContext += 'I found some services that might match what the user is looking for. You should:\n';
           searchContext += '1. Present them warmly and enthusiastically\n';
@@ -167,6 +175,15 @@ const App: React.FC = () => {
           
           if (relevantServices.length > 0) {
             searchContext += `Here are ${relevantServices.length} matching service(s):\n\n`;
+=======
+          searchContext = '\n\n=== ⚠️ CRITICAL: CHECK THIS FIRST! MATCHING SERVICES FOUND ===\n';
+          searchContext += 'I have already searched the LocalLife platform and found matching services for the user\'s request.\n';
+          searchContext += 'YOU MUST check this list FIRST before asking any follow-up questions!\n';
+          searchContext += 'If services are listed below, present them immediately using the "show_service" action.\n\n';
+          
+          if (relevantServices.length > 0) {
+            searchContext += `✅ FOUND ${relevantServices.length} MATCHING SERVICE(S):\n\n`;
+>>>>>>> Stashed changes
             relevantServices.slice(0, 5).forEach((s, idx) => {
               searchContext += `[SERVICE #${idx + 1}]\n`;
               searchContext += `ID: ${s.id}\n`;
@@ -178,8 +195,14 @@ const App: React.FC = () => {
               searchContext += `Image: ${s.imageUrl || 'N/A'}\n`;
               searchContext += `Avatar: ${s.avatarUrl || 'N/A'}\n`;
               searchContext += `\nTo show this service card, use:\n`;
+<<<<<<< Updated upstream
               searchContext += `{"action": "show_service", "data": {"id": "${s.id}", "title": "${s.title}", "category": "${s.category}", "description": "${s.description}", "location": "${s.location}", "price": ${s.price}, "unit": "${s.unit}", "imageUrl": "${s.imageUrl || ''}", "avatarUrl": "${s.avatarUrl || ''}"}}\n\n`;
+=======
+              searchContext += `@@@JSON_START@@@\n{"action": "show_service", "data": {"id": "${s.id}", "title": "${s.title}", "category": "${s.category}", "description": "${s.description}", "location": "${s.location}", "price": ${s.price}, "unit": "${s.unit}", "imageUrl": "${s.imageUrl || ''}", "avatarUrl": "${s.avatarUrl || ''}"}}\n@@@JSON_END@@@\n\n`;
+>>>>>>> Stashed changes
             });
+            searchContext += 'ACTION REQUIRED: Present these services to the user immediately! Use "show_service" action for each one.\n';
+            searchContext += 'DO NOT ask follow-up questions if services are found - show them first!\n\n';
           }
           
           if (relevantDemands.length > 0) {
@@ -190,7 +213,11 @@ const App: React.FC = () => {
             searchContext += '\n';
           }
           
+<<<<<<< Updated upstream
           searchContext += 'IMPORTANT: You can ONLY recommend services from the list above. Use "show_service" action to display service cards. If none match, guide them to create a demand.\n';
+=======
+          searchContext += 'CRITICAL: You can ONLY recommend services from the list above. If services are found, show them immediately!\n';
+>>>>>>> Stashed changes
         } else {
           searchContext = '\n\n=== NO MATCHING SERVICES FOUND ===\n';
           searchContext += 'I searched the LocalLife platform but didn\'t find any services matching what the user is looking for.\n';
