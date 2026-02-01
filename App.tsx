@@ -165,17 +165,6 @@ const App: React.FC = () => {
 
         // 构建搜索上下文 - 更友好的格式，包含完整服务信息
         if (relevantServices.length > 0 || relevantDemands.length > 0) {
-<<<<<<< Updated upstream
-          searchContext = '\n\n=== MATCHING SERVICES ON LOCALLIFE PLATFORM ===\n';
-          searchContext += 'I found some services that might match what the user is looking for. You should:\n';
-          searchContext += '1. Present them warmly and enthusiastically\n';
-          searchContext += '2. Use the "show_service" action to display each service card (up to 3 best matches)\n';
-          searchContext += '3. Ask if any of these match what they need\n';
-          searchContext += '4. If they say no or want something different, guide them to create a demand\n\n';
-          
-          if (relevantServices.length > 0) {
-            searchContext += `Here are ${relevantServices.length} matching service(s):\n\n`;
-=======
           searchContext = '\n\n=== ⚠️ CRITICAL: CHECK THIS FIRST! MATCHING SERVICES FOUND ===\n';
           searchContext += 'I have already searched the LocalLife platform and found matching services for the user\'s request.\n';
           searchContext += 'YOU MUST check this list FIRST before asking any follow-up questions!\n';
@@ -183,7 +172,6 @@ const App: React.FC = () => {
           
           if (relevantServices.length > 0) {
             searchContext += `✅ FOUND ${relevantServices.length} MATCHING SERVICE(S):\n\n`;
->>>>>>> Stashed changes
             relevantServices.slice(0, 5).forEach((s, idx) => {
               searchContext += `[SERVICE #${idx + 1}]\n`;
               searchContext += `ID: ${s.id}\n`;
@@ -195,11 +183,7 @@ const App: React.FC = () => {
               searchContext += `Image: ${s.imageUrl || 'N/A'}\n`;
               searchContext += `Avatar: ${s.avatarUrl || 'N/A'}\n`;
               searchContext += `\nTo show this service card, use:\n`;
-<<<<<<< Updated upstream
-              searchContext += `{"action": "show_service", "data": {"id": "${s.id}", "title": "${s.title}", "category": "${s.category}", "description": "${s.description}", "location": "${s.location}", "price": ${s.price}, "unit": "${s.unit}", "imageUrl": "${s.imageUrl || ''}", "avatarUrl": "${s.avatarUrl || ''}"}}\n\n`;
-=======
               searchContext += `@@@JSON_START@@@\n{"action": "show_service", "data": {"id": "${s.id}", "title": "${s.title}", "category": "${s.category}", "description": "${s.description}", "location": "${s.location}", "price": ${s.price}, "unit": "${s.unit}", "imageUrl": "${s.imageUrl || ''}", "avatarUrl": "${s.avatarUrl || ''}"}}\n@@@JSON_END@@@\n\n`;
->>>>>>> Stashed changes
             });
             searchContext += 'ACTION REQUIRED: Present these services to the user immediately! Use "show_service" action for each one.\n';
             searchContext += 'DO NOT ask follow-up questions if services are found - show them first!\n\n';
@@ -213,11 +197,7 @@ const App: React.FC = () => {
             searchContext += '\n';
           }
           
-<<<<<<< Updated upstream
-          searchContext += 'IMPORTANT: You can ONLY recommend services from the list above. Use "show_service" action to display service cards. If none match, guide them to create a demand.\n';
-=======
           searchContext += 'CRITICAL: You can ONLY recommend services from the list above. If services are found, show them immediately!\n';
->>>>>>> Stashed changes
         } else {
           searchContext = '\n\n=== NO MATCHING SERVICES FOUND ===\n';
           searchContext += 'I searched the LocalLife platform but didn\'t find any services matching what the user is looking for.\n';
