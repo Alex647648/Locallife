@@ -79,11 +79,52 @@ const App: React.FC = () => {
     
     try {
       const stream = await getAgentResponseStream([...currentMsgs, userMessage], instruction, modelId);
+      let fullResponse = "";
+      
       for await (const chunk of stream) {
         if (chunk.text) {
+          fullResponse += chunk.text;
           setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: m.content + chunk.text } : m));
         }
       }
+
+      // Check for JSON action block
+      const jsonMatch = fullResponse.match(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/);
+      if (jsonMatch && jsonMatch[1]) {
+        try {
+          const actionData = JSON.parse(jsonMatch[1]);
+          
+          // Remove JSON from UI for cleaner look
+          const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
+          setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText } : m));
+
+          if (actionData.action === 'create_demand') {
+            const newDemand = await apiService.postDemand({
+              id: `d-${Date.now()}`,
+              ...actionData.data,
+              buyerId: '0xCurrentUser',
+              timestamp: Date.now(),
+              avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
+            });
+            setDemands(prev => [newDemand, ...prev]);
+            alert(`🎉 Demand Card Created: ${actionData.data.title}`);
+          } else if (actionData.action === 'create_service') {
+             const newService = await apiService.createService({
+              id: `s-${Date.now()}`,
+              ...actionData.data,
+              sellerId: '0xCurrentUser',
+              tokenAddress: `0x${Date.now().toString(16)}`,
+              imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=800&auto=format&fit=crop',
+              avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
+            });
+            setServices(prev => [newService, ...prev]);
+            alert(`🎉 Service Listed: ${actionData.data.title}`);
+          }
+        } catch (e) {
+          console.error("Failed to parse agent action", e);
+        }
+      }
+
     } catch (error) {
       setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Error: Communication error." } : m));
     }
