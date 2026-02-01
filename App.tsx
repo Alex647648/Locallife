@@ -82,9 +82,17 @@ const App: React.FC = () => {
     if (role === UserRole.BUYER) {
       // 买家模式：检索服务和需求
       try {
-        // 获取所有服务和需求
-        const allServices = await apiService.getServices();
-        const allDemands = await apiService.getDemands();
+        // 获取所有服务和需求（如果API返回空，使用本地MOCK数据作为后备）
+        let allServices = await apiService.getServices();
+        let allDemands = await apiService.getDemands();
+        
+        // 如果API返回空数组，使用本地MOCK数据
+        if (allServices.length === 0) {
+          allServices = MOCK_SERVICES;
+        }
+        if (allDemands.length === 0) {
+          allDemands = MOCK_DEMANDS;
+        }
         
         // 智能关键词提取和匹配
         const userTextLower = text.toLowerCase();
@@ -111,46 +119,67 @@ const App: React.FC = () => {
         const matchedLocation = locationKeywords.find(loc => userTextLower.includes(loc));
         
         // 提取用户查询中的关键词（用于直接匹配title和description）
+        // 改进：保留更多关键词，包括短词和重要词汇
+        const stopWords = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'let', 'put', 'say', 'she', 'too', 'use', 'want', 'find', 'looking', 'a', 'an', 'i', 'am', 'is', 'to', 'of', 'in', 'on', 'at', 'by', 'with', 'from', 'as', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'must'];
         const userKeywords = userTextLower
           .split(/\s+/)
-          .filter(w => w.length > 2 && !['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use', 'want', 'find', 'looking'].includes(w));
+          .filter(w => w.length >= 2 && !stopWords.includes(w));
         
-        // 筛选服务和需求
+        // 构建搜索查询字符串（用于模糊匹配）
+        const searchQuery = userTextLower.trim();
+        
+        // 筛选服务和需求 - 使用更灵活的匹配策略
         if (matchedCategories.length > 0) {
-          // 先按类别匹配
-          relevantServices = allServices.filter(s => 
-            matchedCategories.some(cat => s.category.toLowerCase() === cat) ||
-            // 同时检查title和description中是否包含用户查询的关键词
-            userKeywords.some(kw => 
+          // 先按类别匹配，然后按关键词匹配
+          relevantServices = allServices.filter(s => {
+            // 类别匹配
+            const categoryMatch = matchedCategories.some(cat => s.category.toLowerCase() === cat);
+            // 关键词匹配（title或description）
+            const keywordMatch = userKeywords.some(kw => 
               s.title.toLowerCase().includes(kw) || 
               s.description.toLowerCase().includes(kw)
-            )
-          );
-          relevantDemands = allDemands.filter(d => 
-            matchedCategories.some(cat => d.category.toLowerCase() === cat) ||
-            userKeywords.some(kw => 
+            );
+            // 全文匹配（更宽松的匹配）
+            const fullTextMatch = s.title.toLowerCase().includes(searchQuery) || 
+                                  s.description.toLowerCase().includes(searchQuery);
+            return categoryMatch || keywordMatch || fullTextMatch;
+          });
+          
+          relevantDemands = allDemands.filter(d => {
+            const categoryMatch = matchedCategories.some(cat => d.category.toLowerCase() === cat);
+            const keywordMatch = userKeywords.some(kw => 
               d.title.toLowerCase().includes(kw) || 
               d.description.toLowerCase().includes(kw)
-            )
-          );
+            );
+            const fullTextMatch = d.title.toLowerCase().includes(searchQuery) || 
+                                  d.description.toLowerCase().includes(searchQuery);
+            return categoryMatch || keywordMatch || fullTextMatch;
+          });
         } else {
           // 如果没有匹配的类别，使用全文搜索
-          relevantServices = allServices.filter(s => 
-            userKeywords.some(kw => 
+          relevantServices = allServices.filter(s => {
+            const keywordMatch = userKeywords.some(kw => 
               s.title.toLowerCase().includes(kw) || 
               s.description.toLowerCase().includes(kw) ||
               s.location.toLowerCase().includes(kw) ||
               s.category.toLowerCase().includes(kw)
-            )
-          );
-          relevantDemands = allDemands.filter(d => 
-            userKeywords.some(kw => 
+            );
+            const fullTextMatch = s.title.toLowerCase().includes(searchQuery) || 
+                                  s.description.toLowerCase().includes(searchQuery);
+            return keywordMatch || fullTextMatch;
+          });
+          
+          relevantDemands = allDemands.filter(d => {
+            const keywordMatch = userKeywords.some(kw => 
               d.title.toLowerCase().includes(kw) || 
               d.description.toLowerCase().includes(kw) ||
               d.location.toLowerCase().includes(kw) ||
               d.category.toLowerCase().includes(kw)
-            )
-          );
+            );
+            const fullTextMatch = d.title.toLowerCase().includes(searchQuery) || 
+                                  d.description.toLowerCase().includes(searchQuery);
+            return keywordMatch || fullTextMatch;
+          });
         }
         
         // 如果匹配了位置，进一步筛选
@@ -163,15 +192,29 @@ const App: React.FC = () => {
           );
         }
 
+        // 调试日志（开发环境）
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Search Debug]', {
+            userQuery: text,
+            allServicesCount: allServices.length,
+            matchedCategories,
+            userKeywords,
+            relevantServicesCount: relevantServices.length,
+            relevantServices: relevantServices.map(s => ({ id: s.id, title: s.title }))
+          });
+        }
+
         // 构建搜索上下文 - 更友好的格式，包含完整服务信息
         if (relevantServices.length > 0 || relevantDemands.length > 0) {
           searchContext = '\n\n=== ⚠️ CRITICAL: CHECK THIS FIRST! MATCHING SERVICES FOUND ===\n';
+          searchContext += `User query: "${text}"\n`;
           searchContext += 'I have already searched the LocalLife platform and found matching services for the user\'s request.\n';
           searchContext += 'YOU MUST check this list FIRST before asking any follow-up questions!\n';
-          searchContext += 'If services are listed below, present them immediately using the "show_service" action.\n\n';
+          searchContext += 'If services are listed below, present them immediately using the "show_service" action.\n';
+          searchContext += 'DO NOT say "I don\'t see any" if services are listed here!\n\n';
           
           if (relevantServices.length > 0) {
-            searchContext += `✅ FOUND ${relevantServices.length} MATCHING SERVICE(S):\n\n`;
+            searchContext += `✅ FOUND ${relevantServices.length} MATCHING SERVICE(S) - YOU MUST SHOW THESE:\n\n`;
             relevantServices.slice(0, 5).forEach((s, idx) => {
               searchContext += `[SERVICE #${idx + 1}]\n`;
               searchContext += `ID: ${s.id}\n`;
@@ -185,8 +228,9 @@ const App: React.FC = () => {
               searchContext += `\nTo show this service card, use:\n`;
               searchContext += `@@@JSON_START@@@\n{"action": "show_service", "data": {"id": "${s.id}", "title": "${s.title}", "category": "${s.category}", "description": "${s.description}", "location": "${s.location}", "price": ${s.price}, "unit": "${s.unit}", "imageUrl": "${s.imageUrl || ''}", "avatarUrl": "${s.avatarUrl || ''}"}}\n@@@JSON_END@@@\n\n`;
             });
-            searchContext += 'ACTION REQUIRED: Present these services to the user immediately! Use "show_service" action for each one.\n';
-            searchContext += 'DO NOT ask follow-up questions if services are found - show them first!\n\n';
+            searchContext += '⚠️ ACTION REQUIRED: Present these services to the user immediately! Use "show_service" action for each one.\n';
+            searchContext += 'DO NOT ask follow-up questions if services are found - show them first!\n';
+            searchContext += 'DO NOT say "I don\'t see any" - the services are listed above!\n\n';
           }
           
           if (relevantDemands.length > 0) {
@@ -198,6 +242,7 @@ const App: React.FC = () => {
           }
           
           searchContext += 'CRITICAL: You can ONLY recommend services from the list above. If services are found, show them immediately!\n';
+          searchContext += 'If you see services listed above, you MUST show them - do not say you cannot find any!\n';
         } else {
           searchContext = '\n\n=== NO MATCHING SERVICES FOUND ===\n';
           searchContext += 'I searched the LocalLife platform but didn\'t find any services matching what the user is looking for.\n';
