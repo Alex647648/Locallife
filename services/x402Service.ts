@@ -45,7 +45,7 @@ function createEIP1193Signer(
 
       const signature = (await provider.request({
         method: 'eth_signTypedData_v4',
-        params: [checksumAddress, JSON.stringify(typedData)],
+        params: [checksumAddress, JSON.stringify(typedData, (_k, v) => typeof v === 'bigint' ? v.toString() : v)],
       })) as `0x${string}`;
 
       return signature;

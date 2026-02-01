@@ -25,8 +25,8 @@ let reputationRegistry: Contract | null = null;
 
 function getProvider(): JsonRpcProvider {
   if (!provider) {
-    const fetchReq = new FetchRequest(config.sepoliaRpcUrl);
-    fetchReq.timeout = 5_000;
+     const fetchReq = new FetchRequest(config.sepoliaRpcUrl);
+     fetchReq.timeout = 15_000;
     const sepoliaNetwork = Network.from(11155111);
     provider = new JsonRpcProvider(fetchReq, sepoliaNetwork, { staticNetwork: true });
   }
@@ -115,43 +115,43 @@ export interface ReputationSummary {
 }
 
 export async function listAgents(
-  page: number,
-  limit: number,
+   page: number,
+   limit: number,
 ): Promise<AgentListResult> {
-  const cacheKey = `agents:${page}:${limit}`;
-  const cached = getCached<AgentListResult>(cacheKey);
-  if (cached) return cached;
+   const cacheKey = `agents:${page}:${limit}`;
+   const cached = getCached<AgentListResult>(cacheKey);
+   if (cached) return cached;
 
-  try {
-    const registry = getIdentityRegistry();
-    const totalSupplyBN: bigint = await registry.totalSupply();
-    const total = Number(totalSupplyBN);
+   try {
+     const registry = getIdentityRegistry();
+     const totalSupplyBN: bigint = await registry.totalSupply();
+     const total = Number(totalSupplyBN);
 
-    const start = (page - 1) * limit + 1;
-    const end = Math.min(start + limit - 1, total);
-    const items: unknown[] = [];
+     const start = total - (page - 1) * limit;
+     const end = Math.max(start - limit + 1, 1);
+     const items: unknown[] = [];
 
-    for (let tokenId = start; tokenId <= end; tokenId++) {
-      try {
-        const [owner, tokenURI] = await Promise.all([
-          registry.ownerOf(tokenId) as Promise<string>,
-          registry.tokenURI(tokenId) as Promise<string>,
-        ]);
-        items.push({ id: String(tokenId), owner, tokenURI });
-      } catch {
-        // token may not exist (burned), skip
-      }
-    }
+     for (let tokenId = start; tokenId >= end; tokenId--) {
+       try {
+         const [owner, tokenURI] = await Promise.all([
+           registry.ownerOf(tokenId) as Promise<string>,
+           registry.tokenURI(tokenId) as Promise<string>,
+         ]);
+         items.push({ id: String(tokenId), owner, tokenURI });
+       } catch {
+         // token may not exist (burned), skip
+       }
+     }
 
-    const result: AgentListResult = { items, source: 'on-chain', total };
-    setCache(cacheKey, result);
-    return result;
-  } catch (err) {
-    console.warn('[erc8004] RPC failed for listAgents, using mock fallback:', (err as Error).message);
-    const start = (page - 1) * limit;
-    const slice = MOCK_AGENTS.slice(start, start + limit);
-    return { items: slice, source: 'mock', total: MOCK_AGENTS.length };
-  }
+     const result: AgentListResult = { items, source: 'on-chain', total };
+     setCache(cacheKey, result);
+     return result;
+   } catch (err) {
+     console.warn('[erc8004] RPC failed for listAgents, using mock fallback:', (err as Error).message);
+     const start = (page - 1) * limit;
+     const slice = MOCK_AGENTS.slice(start, start + limit);
+     return { items: slice, source: 'mock', total: MOCK_AGENTS.length };
+   }
 }
 
 export async function getAgentDetail(agentId: string): Promise<AgentDetail | null> {
