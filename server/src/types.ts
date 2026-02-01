@@ -30,6 +30,7 @@ export interface Service {
   avatarUrl?: string;
   lat?: number;
   lng?: number;
+  walletAddress?: string;  // Real Ethereum wallet for x402 payments
 }
 
 export interface Demand {

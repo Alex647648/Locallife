@@ -26,6 +26,7 @@ import BackgroundEffect from './components/BackgroundEffect';
 import { useBooking } from './hooks/useBooking';
 import AgentRegistrationPanel from './components/AgentRegistrationPanel';
 import FeedbackPanel from './components/FeedbackPanel';
+import OrderChat from './components/OrderChat';
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 
 type ViewType = 'home' | 'explore' | 'offer' | 'docs' | 'x402' | 'escrow';
@@ -556,6 +557,7 @@ const App: React.FC = () => {
               id: `s-${Date.now()}`,
               ...actionData.data,
               sellerId: address || '0xCurrentUser',
+              walletAddress: address || undefined,
               tokenAddress: `0x${Date.now().toString(16)}`,
               imageUrl: autoImageUrl,
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
@@ -586,16 +588,22 @@ const App: React.FC = () => {
   };
 
    const handleAction = async (item: any) => {
-     if (!isConnected) { connectWallet(); return; }
-     if (role === UserRole.BUYER) {
-       if (item.reputation?.agentId) {
-         setPendingAgentId(item.reputation.agentId);
-       }
-       await booking.book(item.id, item.price || 0);
-     } else {
-       alert(`Response sent to: ${item.title}`);
-     }
-   };
+      if (!isConnected) { connectWallet(); return; }
+      if (role === UserRole.BUYER) {
+        if (item.reputation?.agentId) {
+          setPendingAgentId(item.reputation.agentId);
+        }
+        // Determine payTo: prefer walletAddress if valid, fallback to sellerId if valid, else undefined
+        const payTo = (item.walletAddress && /^0x[0-9a-fA-F]{40}$/.test(item.walletAddress)) 
+          ? item.walletAddress 
+          : (/^0x[0-9a-fA-F]{40}$/.test(item.sellerId || '')) 
+            ? item.sellerId 
+            : undefined;
+        await booking.book(item.id, item.price || 0, payTo);
+      } else {
+        alert(`Response sent to: ${item.title}`);
+      }
+    };
 
   // handleConfirmCard 已移除 - 现在只通过AI的create动作来创建卡片，避免重复创建
 
@@ -685,12 +693,18 @@ const App: React.FC = () => {
       )}
       {feedbackTarget && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-lg w-full">
+          <div className="max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 mb-4">
               <h3 className="text-lg font-bold text-blue-900">Booking Confirmed!</h3>
               <p className="text-sm text-blue-700 mt-1">Order <span className="font-mono font-bold">{feedbackTarget.orderId}</span> paid.</p>
             </div>
             <FeedbackPanel orderId={feedbackTarget.orderId} agentId={feedbackTarget.agentId} onDismiss={() => setFeedbackTarget(null)} />
+            
+            {address && (
+              <div className="mt-4 pb-4">
+                <OrderChat orderId={feedbackTarget.orderId} userAddress={address} />
+              </div>
+            )}
           </div>
         </div>
       )}

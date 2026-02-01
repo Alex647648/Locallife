@@ -1,5 +1,5 @@
 
-import { Service, Demand, Order, OrderStatus } from '../types';
+import { Service, Demand, Order, OrderStatus, OrderMessage } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -194,6 +194,34 @@ export const apiService = {
     } catch (error) {
       console.error('[API] Error creating x402 order:', error);
       return null;
+    }
+  },
+
+  // --- Order Messages ---
+  async sendOrderMessage(orderId: string, senderAddress: string, content: string): Promise<OrderMessage> {
+    try {
+      const response = await fetch(`${API_BASE}/orders/${orderId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ senderAddress, content }),
+      });
+      return await handleResponse<OrderMessage>(response);
+    } catch (error) {
+      console.error('[API] Error sending order message:', error);
+      throw error;
+    }
+  },
+
+  async getOrderMessages(orderId: string): Promise<OrderMessage[]> {
+    try {
+      const response = await fetch(`${API_BASE}/orders/${orderId}/messages`);
+      return await handleResponse<OrderMessage[]>(response);
+    } catch (error) {
+      console.error('[API] Error fetching order messages:', error);
+      // Fallback to empty array
+      return [];
     }
   },
 };

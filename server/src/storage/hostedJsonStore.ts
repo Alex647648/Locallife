@@ -219,3 +219,31 @@ export async function getWellKnownRegistrations(): Promise<any> {
     return { registrations: [] };
   }
 }
+
+export async function getAllLocalAgents(): Promise<any[]> {
+  try {
+    const agentsDir = path.join(DATA_DIR, 'agents', 'by-wallet');
+    const files = await fs.readdir(agentsDir).catch(() => [] as string[]);
+    const agents: any[] = [];
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      const data = await readJsonFile(path.join(agentsDir, file));
+      if (data && data.agentId && data.metadata) {
+        agents.push({
+          id: data.agentId,
+          owner: data.sellerWallet,
+          name: data.metadata.name,
+          description: data.metadata.description,
+          category: data.metadata.category,
+          location: data.metadata.location,
+          pricing: data.metadata.pricing,
+          tokenURI: data.agentURI,
+          source: 'local' as const,
+        });
+      }
+    }
+    return agents;
+  } catch {
+    return [];
+  }
+}

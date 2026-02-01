@@ -31,6 +31,7 @@ export interface Service {
   lat?: number; // Latitude for map positioning
   lng?: number; // Longitude for map positioning
   reputation?: ReputationSummary;
+  walletAddress?: string; // Real Ethereum wallet for x402 payments
 }
 
 export interface Demand {
@@ -60,6 +61,15 @@ export interface Order {
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
+
+export interface OrderMessage {
+  id: string;
+  orderId: string;
+  senderAddress: string;
+  senderRole: 'buyer' | 'seller';
   content: string;
   timestamp: number;
 }

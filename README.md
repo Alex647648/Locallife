@@ -48,6 +48,8 @@ In traditional local service markets, trust costs and middleman take-rates sever
 - **ERC-8004 Reputation System**: ReputationRegistry deployed on Ethereum Sepolia, supporting 1-5 star ratings and on-chain comments.
 - **x402 USDC Payments**: Real USDC payments on Base Sepolia via HTTP 402 protocol (EIP-3009 gasless transfers).
 - **Dynamic SDK + wagmi Wallet Connection**: Multi-wallet support with seamless switching between Sepolia and Base Sepolia.
+- **Order Chat**: Buyer-seller messaging system per order (REST API + React component).
+- **Seller Wallet Binding**: Services can specify a `walletAddress` for direct USDC payment routing.
 - **On-Chain Interaction UI**: Dedicated panels for Agent registration and reputation feedback with real on-chain interactions.
 
 ---
@@ -172,6 +174,7 @@ Locallife/
 │   ├── MapModule.tsx                # Leaflet map module
 │   ├── AgentRegistrationPanel.tsx   # ERC-8004 Agent registration
 │   ├── FeedbackPanel.tsx            # On-chain reputation feedback
+│   ├── OrderChat.tsx                # Buyer-seller messaging per order
 │   └── ...
 ├── hooks/
 │   ├── useWallet.ts                 # Dynamic/wagmi wallet state
@@ -193,6 +196,7 @@ Locallife/
 │   │   │   ├── services.ts          # Service CRUD
 │   │   │   ├── demands.ts           # Demand CRUD
 │   │   │   ├── orders.ts            # Orders + x402 fulfillment
+│   │   │   ├── messages.ts          # Order messaging routes
 │   │   │   ├── erc8004.ts           # Agent list endpoint
 │   │   │   ├── erc8004Write.ts      # Registration/feedback JSON hosting
 │   │   │   └── hostedJson.ts        # On-chain pointer URI hosting
@@ -201,6 +205,7 @@ Locallife/
 │   │   │   └── erc8004Service.ts    # ethers v6 contract reading
 │   │   └── storage/
 │   │       ├── orderStore.ts        # x402 order storage
+│   │       ├── messageStore.ts      # Order messages storage
 │   │       └── hostedJsonStore.ts   # Agent/feedback JSON storage
 │   └── README.md           # Backend documentation
 ├── Instruction_docs/       # Project documentation
@@ -234,6 +239,18 @@ Locallife/
 - ✅ **On-Chain Reputation**: Immutable 1-5 star rating system.
 - ✅ **USDC Payments**: x402 protocol with EIP-3009 gasless transfers.
 - ⚠️ **Data Persistence**: Currently in-memory, will be lost upon server restart.
+
+---
+
+## ⚠️ Known Gotchas / Important Notes
+
+### Base Sepolia USDC EIP-712 Domain
+The USDC contract on Base Sepolia returns `name()` = `"USDC"`, NOT `"USD Coin"` (which is what Base Mainnet uses). The `@x402/evm` SDK uses `extra.name` from PaymentRequirements as the EIP-712 domain name. If this doesn't match the contract's `DOMAIN_SEPARATOR`, `transferWithAuthorization` reverts silently (facilitator returns generic `transaction_failed`).
+
+**Fix**: Set `extra.name: 'USDC'` for Base Sepolia.
+
+- **USDC Contract**: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
+- **EIP-712 Domain**: `{ name: "USDC", version: "2", chainId: 84532 }`
 
 ---
 
@@ -441,6 +458,8 @@ LocalLife 协议旨在桥接现实世界的本地服务与链上流动性。该�
 - **ERC-8004 信誉系统**: ReputationRegistry 部署于 Ethereum Sepolia，支持 1-5 星评价与链上评论
 - **x402 USDC 支付**: 基于 HTTP 402 协议在 Base Sepolia 上实现真实 USDC 支付（EIP-3009 无 Gas 授权转账）
 - **Dynamic SDK + wagmi 钱包连接**: 多钱包支持，Sepolia 与 Base Sepolia 双链切换
+- **订单聊天 (Order Chat)**: 针对每个订单的买家-卖家消息系统（REST API + React 组件）
+- **卖家钱包绑定**: 服务可以指定 `walletAddress` 用于直接 USDC 支付路由
 - **链上交互 UI**: Agent 注册面板与信誉评价面板，支持真实链上交互
 
 ---
@@ -565,6 +584,7 @@ Locallife/
 │   ├── MapModule.tsx                # Leaflet 地图模块
 │   ├── AgentRegistrationPanel.tsx   # ERC-8004 Agent 注册
 │   ├── FeedbackPanel.tsx            # 链上信誉评价
+│   ├── OrderChat.tsx                # 每个订单的买卖双方消息系统
 │   └── ...
 ├── hooks/
 │   ├── useWallet.ts                 # Dynamic/wagmi 钱包状态
@@ -586,6 +606,7 @@ Locallife/
 │   │   │   ├── services.ts          # 服务 CRUD
 │   │   │   ├── demands.ts           # 需求 CRUD
 │   │   │   ├── orders.ts            # 订单 + x402 履行
+│   │   │   ├── messages.ts          # 订单消息路由
 │   │   │   ├── erc8004.ts           # Agent 列表端点
 │   │   │   ├── erc8004Write.ts      # 注册/反馈 JSON 托管
 │   │   │   └── hostedJson.ts        # 链上指针 URI 托管
@@ -594,6 +615,7 @@ Locallife/
 │   │   │   └── erc8004Service.ts    # ethers v6 合约读取
 │   │   └── storage/
 │   │       ├── orderStore.ts        # x402 订单存储
+│   │       ├── messageStore.ts      # 订单消息存储
 │   │       └── hostedJsonStore.ts   # Agent/反馈 JSON 存储
 │   └── README.md           # 后端文档
 ├── Instruction_docs/       # 项目文档
@@ -627,6 +649,18 @@ Locallife/
 - ✅ **链上信誉**: 不可篡改的 1-5 星评价系统
 - ✅ **USDC 支付**: x402 协议，EIP-3009 无 Gas 授权转账
 - ⚠️ **数据持久化**: 内存存储，重启后丢失
+
+---
+
+## ⚠️ 注意事项 / 已知问题
+
+### Base Sepolia USDC EIP-712 域 (Domain)
+Base Sepolia 上的 USDC 合约返回的 `name()` 为 `"USDC"`，而不是 `"USD Coin"`（Base 主网使用此名称）。`@x402/evm` SDK 使用 PaymentRequirements 中的 `extra.name` 作为 EIP-712 域名。如果不匹配合约的 `DOMAIN_SEPARATOR`，`transferWithAuthorization` 会静默回滚（促进者 Facilitator 返回通用的 `transaction_failed`）。
+
+**解决方案**: 为 Base Sepolia 设置 `extra.name: 'USDC'`。
+
+- **USDC 合约地址**: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
+- **EIP-712 域**: `{ name: "USDC", version: "2", chainId: 84532 }`
 
 ---
 

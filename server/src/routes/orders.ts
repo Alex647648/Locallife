@@ -3,11 +3,25 @@ import { Order, OrderStatus } from '../types';
 import { z } from 'zod';
 import { x402OrderStore } from '../storage/orderStore';
 import { config } from '../config';
+import { dataStore } from '../services/dataStore';
 
 export const ordersRouter = Router();
 
 // In-memory storage (in production, use database)
 const orders: Order[] = [];
+
+/** Parse a human-readable price string like "$20.00" or "20" into USDC base units (6 decimals) */
+function toUsdcBaseUnits(priceStr: string): string {
+  const cleaned = priceStr.replace(/[^0-9.]/g, '');
+  const amount = parseFloat(cleaned);
+  if (isNaN(amount) || amount <= 0) return '0';
+  return Math.round(amount * 1_000_000).toString();
+}
+
+/** Check if a string is a valid Ethereum address (0x + 40 hex chars) */
+function isValidEthAddress(addr: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(addr);
+}
 
 // Validation schemas
 const createOrderSchema = z.object({
@@ -146,8 +160,16 @@ ordersRouter.post('/x402', (req: Request, res: Response) => {
     return;
   }
 
-  const sellerPayTo = payTo || config.defaultPayTo;
-  const order = x402OrderStore.createOrder({ serviceId, buyerAddress, sellerPayTo, price });
+  const service = dataStore.getServiceById(serviceId);
+  const rawPayTo = payTo || service?.walletAddress || service?.sellerId || config.defaultPayTo;
+  const sellerPayTo = isValidEthAddress(rawPayTo) ? rawPayTo : buyerAddress;
+  const priceBaseUnits = toUsdcBaseUnits(price);
+  const order = x402OrderStore.createOrder({
+    serviceId,
+    buyerAddress,
+    sellerPayTo,
+    price: priceBaseUnits,
+  });
 
   res.status(201).json({
     success: true,
@@ -188,21 +210,26 @@ ordersRouter.post('/x402/:orderId/fulfill', async (req: Request, res: Response) 
     | string
     | undefined;
 
-  const paymentRequirements = {
-    scheme: 'exact',
-    network: 'eip155:84532',
-    maxAmountRequired: order.price,
-    resource: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
-    payTo: order.sellerPayTo,
-    asset: config.baseSepoliaUsdcAddress,
-  };
+   const paymentRequirements = {
+     scheme: 'exact',
+     network: 'eip155:84532',
+     amount: order.price,
+     maxTimeoutSeconds: 300,
+     payTo: order.sellerPayTo,
+     asset: config.baseSepoliaUsdcAddress,
+      extra: {
+        name: 'USDC',
+        version: '2',
+      },
+   };
 
-  if (!paymentHeader && order.status === 'CREATED') {
-    const paymentRequired = {
-      x402Version: 2,
-      accepts: [paymentRequirements],
-      error: 'Payment required before fulfillment',
-    };
+   if (!paymentHeader && order.status === 'CREATED') {
+     const paymentRequired = {
+       x402Version: 2,
+       accepts: [paymentRequirements],
+       resource: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+       error: 'Payment required before fulfillment',
+     };
     const requirementsHeader = Buffer.from(JSON.stringify(paymentRequired)).toString('base64');
 
     res.status(402);

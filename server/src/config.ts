@@ -2,7 +2,7 @@ export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   graphApiKey: process.env.GRAPH_API_KEY || '',
   nodeEnv: process.env.NODE_ENV || 'development',
-  sepoliaRpcUrl: process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org',
+  sepoliaRpcUrl: process.env.SEPOLIA_RPC_URL || 'https://11155111.rpc.thirdweb.com/',
   identityRegistryAddress: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
   reputationRegistryAddress: '0x8004B663056A597Dffe9eCcC1965A193B7388713',
   facilitatorUrl: process.env.FACILITATOR_URL || 'https://x402.org/facilitator',

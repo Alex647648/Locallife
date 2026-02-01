@@ -4,6 +4,7 @@ import {
   getAgentDetail,
   getReputationSummary,
 } from '../services/erc8004Service';
+import { getAllLocalAgents } from '../storage/hostedJsonStore';
 
 export const erc8004Router = Router();
 
@@ -12,7 +13,22 @@ erc8004Router.get('/agents', async (req: Request, res: Response) => {
   const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? '20'), 10) || 20));
 
   try {
-    const result = await listAgents(page, limit);
+    const [result, localAgents] = await Promise.all([
+      listAgents(page, limit),
+      getAllLocalAgents(),
+    ]);
+
+    // Merge local agents that aren't already in on-chain/mock results
+    const existingIds = new Set(result.items.map((a: any) => String(a.id)));
+    const newLocalAgents = localAgents.filter(a => !existingIds.has(String(a.id)));
+    if (newLocalAgents.length > 0) {
+      result.items = [...newLocalAgents, ...result.items];
+      result.total += newLocalAgents.length;
+      if (result.source === 'on-chain') {
+        (result as any).source = 'hybrid';
+      }
+    }
+
     res.json({ success: true, data: result, meta: { page, limit } });
   } catch (err) {
     res.status(502).json({

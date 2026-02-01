@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 export interface X402Order {
   id: string;
   serviceId: string;
@@ -18,8 +21,43 @@ export interface CreateX402OrderInput {
   price: string;
 }
 
+const DATA_DIR = path.join(__dirname, '../../data');
+const ORDERS_FILE = path.join(DATA_DIR, 'x402-orders.json');
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
 class X402OrderStore {
-  private orders = new Map<string, X402Order>();
+  private orders: X402Order[] = [];
+
+  constructor() {
+    this.load();
+  }
+
+  private load() {
+    ensureDataDir();
+    try {
+      if (fs.existsSync(ORDERS_FILE)) {
+        const data = fs.readFileSync(ORDERS_FILE, 'utf-8');
+        this.orders = JSON.parse(data);
+      }
+    } catch (err) {
+      console.error('[x402OrderStore] Failed to load orders:', err);
+      this.orders = [];
+    }
+  }
+
+  private save() {
+    ensureDataDir();
+    try {
+      fs.writeFileSync(ORDERS_FILE, JSON.stringify(this.orders, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[x402OrderStore] Failed to save orders:', err);
+    }
+  }
 
   private generateId(): string {
     const ts = Date.now();
@@ -38,21 +76,23 @@ class X402OrderStore {
       status: 'CREATED',
       createdAt: Date.now(),
     };
-    this.orders.set(id, order);
+    this.orders.push(order);
+    this.save();
     return order;
   }
 
   getOrder(orderId: string): X402Order | null {
-    return this.orders.get(orderId) ?? null;
+    return this.orders.find(o => o.id === orderId) ?? null;
   }
 
   markPaid(orderId: string, txHash?: string, payerAddress?: string): X402Order | null {
-    const order = this.orders.get(orderId);
+    const order = this.orders.find(o => o.id === orderId);
     if (!order) return null;
 
     if (order.status === 'PAID' || order.status === 'COMPLETED') {
       if (txHash && !order.txHash) order.txHash = txHash;
       if (payerAddress && !order.payerAddress) order.payerAddress = payerAddress;
+      this.save();
       return order;
     }
 
@@ -60,6 +100,7 @@ class X402OrderStore {
     order.paidAt = Date.now();
     if (txHash) order.txHash = txHash;
     if (payerAddress) order.payerAddress = payerAddress;
+    this.save();
     return order;
   }
 }
