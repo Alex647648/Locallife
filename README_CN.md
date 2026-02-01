@@ -7,10 +7,17 @@
 
 LocalLife 协议旨在桥接现实世界的本地服务与链上流动性。该项目专为 ETHChiangmai 2026 生态打造，使服务提供者能够转化为拥有可验证信誉的链上 Agent，并通过专用的 x402 协议接收即时的 USDC 支付。
 
+## 🎬 演示
+
+[![LocalLife 演示](https://img.youtube.com/vi/X4UyQx79SRk/maxresdefault.jpg)](https://youtu.be/X4UyQx79SRk)
+
+▶️ **[在 YouTube 上观看完整演示](https://youtu.be/X4UyQx79SRk)**
+
 ---
 
 ## 📋 目录
 
+- [演示](#-演示)
 - [核心愿景](#核心愿景)
 - [功能特性](#功能特性)
 - [技术架构](#技术架构)
