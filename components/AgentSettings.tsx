@@ -153,8 +153,22 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
 
     try {
       // 通过后端验证 API Key（避免 CORS 问题）
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
-      const testResponse = await fetch(`${API_BASE}/agent/chat`, {
+      // 如果 VITE_API_BASE_URL 未设置，使用相对路径（适用于 monolith 部署）
+      // 如果设置了，使用绝对路径（适用于开发环境或分离部署）
+      const envApiBase = import.meta.env.VITE_API_BASE_URL;
+      const API_BASE = envApiBase || '/api/v1';
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3f4bf410-9649-4bb8-88b7-4f0a7038d061',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AgentSettings.tsx:157',message:'API_BASE URL configuration',data:{envApiBase,apiBase:API_BASE,isRelative:!envApiBase},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
+      const fetchUrl = `${API_BASE}/agent/chat`;
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3f4bf410-9649-4bb8-88b7-4f0a7038d061',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AgentSettings.tsx:162',message:'Fetch request details',data:{fetchUrl,method:'POST'},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      
+      const testResponse = await fetch(fetchUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,12 +178,23 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
           systemInstruction: 'You are a helpful assistant.',
           model: 'gemini-3-flash-preview',
           apiKey: trimmedKey
-        })
+        }),
+        // Add timeout and better error handling
+        signal: AbortSignal.timeout(30000) // 30 second timeout
       });
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3f4bf410-9649-4bb8-88b7-4f0a7038d061',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AgentSettings.tsx:175',message:'Response status',data:{ok:testResponse.ok,status:testResponse.status,statusText:testResponse.statusText},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      
       if (!testResponse.ok) {
         const errorData = await testResponse.json().catch(() => ({}));
         const errorMessage = errorData.message || errorData.error || `Validation failed (${testResponse.status})`;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3f4bf410-9649-4bb8-88b7-4f0a7038d061',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AgentSettings.tsx:181',message:'Response error',data:{status:testResponse.status,errorData,errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        
         throw new Error(errorMessage);
       }
 
@@ -189,16 +214,28 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
       setSaveStatus('error');
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3f4bf410-9649-4bb8-88b7-4f0a7038d061',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AgentSettings.tsx:211',message:'Catch block error',data:{errorMessage,errorType:error instanceof Error ? error.constructor.name : typeof error,errorName:error instanceof Error ? error.name : undefined,isAbortError:error instanceof Error && error.name === 'AbortError',isNetworkError:error instanceof Error && (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')),stack:error instanceof Error ? error.stack : undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      
       // 提供更友好的错误消息
       let friendlyMessage = errorMessage;
-      if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('API key')) {
-        friendlyMessage = 'Invalid API Key. Please check your key and try again.';
-      } else if (errorMessage.includes('403') || errorMessage.includes('FORBIDDEN')) {
-        friendlyMessage = 'API Key access denied. Please check your key permissions.';
-      } else if (errorMessage.includes('429') || errorMessage.includes('RATE_LIMIT')) {
-        friendlyMessage = 'Rate limit exceeded. Please try again later.';
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        friendlyMessage = 'Network error. Please check your connection and backend server.';
+      
+      // Check for specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || errorMessage.includes('timeout')) {
+          friendlyMessage = 'Request timeout. Please check your connection and try again.';
+        } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('network')) {
+          friendlyMessage = 'Network error. Please check your connection and backend server.';
+        } else if (errorMessage.includes('CORS') || errorMessage.includes('Cross-Origin')) {
+          friendlyMessage = 'CORS error. Please check backend server configuration.';
+        } else if (errorMessage.includes('401') || errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('API key')) {
+          friendlyMessage = 'Invalid API Key. Please check your key and try again.';
+        } else if (errorMessage.includes('403') || errorMessage.includes('FORBIDDEN')) {
+          friendlyMessage = 'API Key access denied. Please check your key permissions.';
+        } else if (errorMessage.includes('429') || errorMessage.includes('RATE_LIMIT')) {
+          friendlyMessage = 'Rate limit exceeded. Please try again later.';
+        }
       }
       
       setSaveMessage(`Failed to save: ${friendlyMessage}`);

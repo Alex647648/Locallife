@@ -680,10 +680,12 @@ Answer customer questions based on the above information. Be helpful, concise, a
         return <Marketplace services={services} onBook={handleAction} onLocate={handleLocate} />;
        case 'offer': 
          return (
-           <div className="space-y-12">
-             <AgentRegistrationPanel onRegistrationSuccess={() => setRefreshTrigger(t => t + 1)} />
-             <DemandsBoard demands={demands} onAccept={handleAction} onLocate={handleLocate} />
-           </div>
+           <DemandsBoard 
+             demands={demands} 
+             onAccept={handleAction} 
+             onLocate={handleLocate}
+             onRegistrationSuccess={() => setRefreshTrigger(t => t + 1)}
+           />
          );
       case 'docs': 
         return <Documentation />;

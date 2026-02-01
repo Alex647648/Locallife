@@ -1,7 +1,9 @@
 
 import { ChatMessage } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1';
+// 如果 VITE_API_BASE_URL 未设置，使用相对路径（适用于 monolith 部署）
+// 如果设置了，使用绝对路径（适用于开发环境或分离部署）
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 /**
  * Get agent response stream from backend (SSE)

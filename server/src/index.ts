@@ -16,11 +16,18 @@ import { messagesRouter } from './routes/messages';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
+
+// ⚠️ CRITICAL for Render deployment: Service MUST listen on process.env.PORT
+// Render automatically sets PORT environment variable
+// If PORT is not set (local dev), fallback to 3001
 const PORT = process.env.PORT || 3001;
 
 // Middleware
+// CORS configuration: For monolith deployment (same origin), allow all origins
+// For separate frontend/backend, use FRONTEND_URL environment variable
+const corsOrigin = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? true : 'http://localhost:3000');
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: corsOrigin,
   credentials: true
 }));
 app.use(express.json());
@@ -60,7 +67,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 LocalLife Backend running on http://localhost:${PORT}`);
-  console.log(`📡 API available at http://localhost:${PORT}/api/v1`);
+// Listen on PORT (provided by Render in production, or 3001 in local dev)
+// This MUST use process.env.PORT for Render health checks to pass
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 LocalLife Backend running on port ${PORT}`);
+  console.log(`📡 API available at http://0.0.0.0:${PORT}/api/v1`);
+  console.log(`🏥 Health check: http://0.0.0.0:${PORT}/health`);
 });

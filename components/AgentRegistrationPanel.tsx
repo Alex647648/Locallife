@@ -6,9 +6,11 @@ import { SEPOLIA_CHAIN_ID } from '../services/erc8004WriteService';
 interface AgentRegistrationPanelProps {
   prefillData?: Partial<RegistrationInput>;
   onRegistrationSuccess?: () => void;
+  compact?: boolean; // New prop for compact mode
+  onShowFullForm?: () => void; // Callback to show full form
 }
 
-const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefillData, onRegistrationSuccess }) => {
+const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefillData, onRegistrationSuccess, compact = false, onShowFullForm }) => {
   const wallet = useWalletAdapter();
   const { register, isRegistering, result, error, reset } = useAgentRegistration();
 
@@ -74,11 +76,52 @@ const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefill
     );
   }
 
+  // Compact mode for header placement
+  if (compact) {
+    return (
+      <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-2xl p-4 shadow-sm ring-1 ring-black/[0.02] space-y-3 max-w-sm h-full flex flex-col justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Register Your Own Seller Agent</h3>
+          <p className="text-xs text-slate-400 mt-1">Mint your AI identity with ERC-8004 to build reputation and receive verified orders.</p>
+        </div>
+
+        <div className="space-y-2">
+          {isWrongChain && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs text-amber-800">
+              Switch to Sepolia (11155111)
+            </div>
+          )}
+
+          {!wallet.address ? (
+            <button
+              onClick={() => wallet.openWalletModal()}
+              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all"
+            >
+              Register Now
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (onShowFullForm) {
+                  onShowFullForm();
+                }
+              }}
+              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all"
+            >
+              Register Now
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Full mode (original)
   return (
     <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-3xl p-8 shadow-sm ring-1 ring-black/[0.02] space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-slate-900">Register as ERC-8004 Agent</h3>
-        <p className="text-sm text-slate-400 mt-1">Mint your on-chain identity on Sepolia to build reputation and receive verified orders.</p>
+        <h3 className="text-xl font-bold text-slate-900">Register Your Own Seller Agent</h3>
+        <p className="text-sm text-slate-400 mt-1">Mint your AI identity with ERC-8004 to build reputation and receive verified orders.</p>
       </div>
 
       {isWrongChain && (
