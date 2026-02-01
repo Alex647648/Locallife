@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   UserRole, 
@@ -19,22 +18,28 @@ import { generateServiceImageUrl } from './utils/imageGenerator';
 import ChatWindow from './components/ChatWindow';
 import Marketplace from './components/Marketplace';
 import DemandsBoard from './components/DemandsBoard';
-import WalletModal from './components/WalletModal';
 import Documentation from './components/Documentation';
 import X402Standard from './components/X402Standard';
 import SmartEscrow from './components/SmartEscrow';
 import Home from './components/Home';
 import BackgroundEffect from './components/BackgroundEffect';
+import { DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { useAccount } from 'wagmi';
 
 type ViewType = 'home' | 'explore' | 'offer' | 'docs' | 'x402' | 'escrow';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewType>('home');
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
+  
+  // Real wallet state from Dynamic SDK
+  const { setShowAuthFlow, primaryWallet, user } = useDynamicContext();
+  const { address, isConnected } = useAccount();
+  
+  // Format wallet address for display
+  const formattedAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
   
   const [services, setServices] = useState<Service[]>([]);
   const [demands, setDemands] = useState<Demand[]>([]);
@@ -72,11 +77,8 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
-  const connectWallet = () => setIsWalletModalOpen(true);
-  const handleConnectWallet = (walletName: string) => {
-    setWalletConnected(true);
-    setIsWalletModalOpen(false);
-  };
+  // Open Dynamic's wallet connection modal
+  const connectWallet = () => setShowAuthFlow(true);
 
   const navigateToDashboard = (targetRole: UserRole) => {
     setRole(targetRole);
@@ -100,17 +102,11 @@ const App: React.FC = () => {
     if (role === UserRole.BUYER) {
       // 买家模式：检索服务和需求
       try {
-        // 获取所有服务和需求（如果API返回空，使用本地MOCK数据作为后备）
-        let allServices = await apiService.getServices();
-        let allDemands = await apiService.getDemands();
+        // 获取所有服务和需求
+        const allServices = await apiService.getServices();
+        const allDemands = await apiService.getDemands();
         
-        // 如果API返回空数组，使用本地MOCK数据
-        if (allServices.length === 0) {
-          allServices = MOCK_SERVICES;
-        }
-        if (allDemands.length === 0) {
-          allDemands = MOCK_DEMANDS;
-        }
+        console.log(`[Search] Fetched ${allServices.length} services, ${allDemands.length} demands`);
         
         // 智能关键词提取和匹配
         const userTextLower = text.toLowerCase();
@@ -459,7 +455,7 @@ const App: React.FC = () => {
             const newDemand = await apiService.postDemand({
               id: `d-${Date.now()}`,
               ...actionData.data,
-              buyerId: '0xCurrentUser',
+              buyerId: address || '0xCurrentUser',
               timestamp: Date.now(),
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
             });
@@ -480,7 +476,7 @@ const App: React.FC = () => {
             const newService = await apiService.createService({
               id: `s-${Date.now()}`,
               ...actionData.data,
-              sellerId: '0xCurrentUser',
+              sellerId: address || '0xCurrentUser',
               tokenAddress: `0x${Date.now().toString(16)}`,
               imageUrl: autoImageUrl,
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
@@ -511,9 +507,9 @@ const App: React.FC = () => {
   };
 
   const handleAction = async (item: any) => {
-    if (!walletConnected) { setIsWalletModalOpen(true); return; }
+    if (!isConnected) { setShowAuthFlow(true); return; }
     if (role === UserRole.BUYER) {
-      const newOrder = await apiService.createOrder(item.id, '0xCurrentBuyer');
+      const newOrder = await apiService.createOrder(item.id, address || '0xCurrentBuyer');
       setOrders(prev => [...prev, newOrder]);
       alert(`Booking initiated! Smart Escrow created for: ${item.title}`);
     } else {
@@ -545,7 +541,7 @@ const App: React.FC = () => {
 
     switch (view) {
       case 'home': 
-        return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} />;
+        return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} currentUserAddress={address} />;
       case 'explore': 
         return <Marketplace services={services} onBook={handleAction} onLocate={handleLocate} />;
       case 'offer': 
@@ -557,14 +553,13 @@ const App: React.FC = () => {
       case 'escrow': 
         return <SmartEscrow />;
       default: 
-        return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} />;
+        return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} currentUserAddress={address} />;
     }
   };
 
   return (
     <div className="relative selection:bg-blue-100 selection:text-blue-900">
       <BackgroundEffect />
-      <WalletModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} onConnect={handleConnectWallet} />
 
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-2xl border-b border-black/5 px-8 h-20 flex items-center justify-between">
         <div className="flex items-center gap-12">
@@ -586,7 +581,14 @@ const App: React.FC = () => {
               <span>{demands.length} demands</span>
             </div>
           )}
-          <button onClick={connectWallet} className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-black/10">{walletConnected ? '0x3f...2e4d' : 'Connect Wallet'}</button>
+          {/* Dynamic Wallet Widget - handles MetaMask, Coinbase, embedded wallets */}
+          <DynamicWidget 
+            innerButtonComponent={
+              <button className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-black/10">
+                {isConnected ? formattedAddress : 'Connect Wallet'}
+              </button>
+            }
+          />
         </div>
       </nav>
 

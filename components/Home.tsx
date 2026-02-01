@@ -9,9 +9,10 @@ interface HomeProps {
   demands: Demand[];
   onAction: (item: any) => void;
   focusItem?: any | null;
+  currentUserAddress?: string;
 }
 
-const Home: React.FC<HomeProps> = ({ services, demands, onAction, focusItem }) => {
+const Home: React.FC<HomeProps> = ({ services, demands, onAction, focusItem, currentUserAddress }) => {
   const [activeTab, setActiveTab] = useState<'services' | 'demands'>('services');
 
   const recommendedServices = [...services]
@@ -37,7 +38,7 @@ const Home: React.FC<HomeProps> = ({ services, demands, onAction, focusItem }) =
 
       <section className="space-y-8">
         <div className="flex items-center justify-between"><div className="space-y-1"><h2 className="text-3xl font-bold text-slate-900 tracking-tight">Geospatial Registry</h2><p className="text-sm font-medium text-slate-400">Visualizing live protocol activity across Chiang Mai.</p></div></div>
-        <MapModule services={services} demands={demands} onAction={onAction} focusItem={focusItem} />
+        <MapModule services={services} demands={demands} onAction={onAction} focusItem={focusItem} currentUserAddress={currentUserAddress} />
       </section>
 
       <section className="space-y-10">
