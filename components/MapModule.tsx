@@ -150,9 +150,12 @@ const MapModule: React.FC<MapModuleProps> = ({ services, demands, onAction, focu
       </div>
 
       <div className="absolute top-8 left-8 flex bg-white/90 backdrop-blur-xl p-1.5 rounded-[1.5rem] border border-white/50 shadow-2xl z-20">
-         {(['all', 'services', 'demands'] as const).map(type => (
-            <button key={type} onClick={() => { setViewType(type); setSelectedItem(null); }} className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all ${viewType === type ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>{type}</button>
-         ))}
+         {(['all', 'services', 'demands'] as const).map(type => {
+            const displayText = type === 'services' ? 'EXPLORE' : type === 'demands' ? 'OFFER' : 'ALL';
+            return (
+              <button key={type} onClick={() => { setViewType(type); setSelectedItem(null); }} className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all ${viewType === type ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>{displayText}</button>
+            );
+         })}
       </div>
 
       {selectedItem && (
