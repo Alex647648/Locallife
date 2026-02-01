@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAgentRegistration, type RegistrationInput } from '../hooks/useAgentRegistration';
 import { useWalletAdapter } from '../hooks/useWalletAdapter';
 import { SEPOLIA_CHAIN_ID } from '../services/erc8004WriteService';
 
 interface AgentRegistrationPanelProps {
   prefillData?: Partial<RegistrationInput>;
+  onRegistrationSuccess?: () => void;
 }
 
-const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefillData }) => {
+const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefillData, onRegistrationSuccess }) => {
   const wallet = useWalletAdapter();
   const { register, isRegistering, result, error, reset } = useAgentRegistration();
 
@@ -18,6 +19,12 @@ const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefill
     location: prefillData?.location || '',
     pricing: prefillData?.pricing || '',
   });
+
+  useEffect(() => {
+    if (result && onRegistrationSuccess) {
+      onRegistrationSuccess();
+    }
+  }, [result, onRegistrationSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,15 +126,16 @@ const AgentRegistrationPanel: React.FC<AgentRegistrationPanelProps> = ({ prefill
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Description *</label>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Service Description (Agent Knowledge) *</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe your services..."
+              placeholder="Describe your services in detail — this becomes your AI agent's knowledge for answering customer questions..."
               rows={3}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
               required
             />
+            <p className="text-[10px] text-slate-400 mt-1">This description powers your AI customer service agent. Buyers can chat with your agent to learn more about your service.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

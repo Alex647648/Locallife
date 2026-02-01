@@ -6,9 +6,10 @@ interface ServiceCardProps {
   service: Service;
   onSelect: (service: Service) => void;
   onLocate?: (service: Service) => void;
+  onChatAgent?: (service: Service) => void;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onLocate }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onLocate, onChatAgent }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [imgStatus, setImgStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   
@@ -117,7 +118,21 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onLocate }
           <div className="flex items-baseline gap-1"><span className="text-2xl font-bold text-slate-900 tracking-tight">{service.price}</span><span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">USDC</span></div>
           <span className="text-[9px] text-slate-400 font-bold block mt-1 uppercase tracking-widest">{service.unit}</span>
         </div>
-        <button onClick={() => onSelect(service)} className={`text-[10px] font-bold uppercase tracking-[0.1em] px-6 py-3.5 rounded-2xl transition-all active:scale-95 shadow-xl ${isFeatured ? 'bg-blue-600 text-white shadow-blue-600/20' : 'bg-slate-900 text-white shadow-slate-900/10 hover:bg-blue-600'}`}>Book Now</button>
+        <div className="flex items-center gap-2">
+          {onChatAgent && service.description && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onChatAgent(service); }}
+              className="border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 bg-white rounded-2xl px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.1em] transition-all active:scale-95 flex items-center gap-2"
+              title="Chat with Agent"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Chat
+            </button>
+          )}
+          <button onClick={() => onSelect(service)} className={`text-[10px] font-bold uppercase tracking-[0.1em] px-6 py-3.5 rounded-2xl transition-all active:scale-95 shadow-xl ${isFeatured ? 'bg-blue-600 text-white shadow-blue-600/20' : 'bg-slate-900 text-white shadow-slate-900/10 hover:bg-blue-600'}`}>Book Now</button>
+        </div>
       </div>
     </div>
   );

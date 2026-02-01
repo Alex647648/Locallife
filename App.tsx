@@ -27,6 +27,7 @@ import { useBooking } from './hooks/useBooking';
 import AgentRegistrationPanel from './components/AgentRegistrationPanel';
 import FeedbackPanel from './components/FeedbackPanel';
 import OrderChat from './components/OrderChat';
+import AgentChatModal from './components/AgentChatModal';
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 
 type ViewType = 'home' | 'explore' | 'offer' | 'docs' | 'x402' | 'escrow';
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Wallet state from wagmi
   const { address, isConnected, chainId: currentChainId } = useAccount();
@@ -52,6 +54,7 @@ const App: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   
   const [focusedItem, setFocusedItem] = useState<any | null>(null);
+  const [agentChatService, setAgentChatService] = useState<Service | null>(null);
 
    const booking = useBooking();
    const [feedbackTarget, setFeedbackTarget] = useState<{ orderId: string; agentId?: string } | null>(null);
@@ -139,9 +142,9 @@ const App: React.FC = () => {
        } finally {
          setDataLoading(false);
        }
-     };
-     loadData();
-   }, []);
+      };
+      loadData();
+    }, [refreshTrigger]);
 
    useEffect(() => {
      if (booking.bookingResult) {
@@ -180,14 +183,35 @@ const App: React.FC = () => {
     let relevantDemands: Demand[] = [];
     let searchContext = '';
 
-    if (role === UserRole.BUYER) {
-      // 买家模式：检索服务和需求
-      try {
-        // 获取所有服务和需求
-        const allServices = await apiService.getServices();
-        const allDemands = await apiService.getDemands();
-        
-        console.log(`[Search] Fetched ${allServices.length} services, ${allDemands.length} demands`);
+     if (role === UserRole.BUYER) {
+       // 买家模式：检索服务和需求
+       try {
+         // 获取所有服务和需求
+         const allServices = await apiService.getServices();
+         const allDemands = await apiService.getDemands();
+         
+         // Also include registered agents as searchable services
+         const agentsRaw = await apiService.getErc8004Agents().catch(() => []);
+         const agentItems: any[] = Array.isArray(agentsRaw) ? agentsRaw : ((agentsRaw as any)?.items || []);
+         const serviceSellerIds = new Set(allServices.map((s: any) => s.sellerId.toLowerCase()));
+         for (const agent of agentItems) {
+           if (agent.owner && !serviceSellerIds.has(agent.owner.toLowerCase())) {
+             const meta = agent.metadata || agent;
+             const locationStr = typeof meta.location === 'string' ? meta.location : 'Chiang Mai';
+             allServices.push({
+               id: `agent-${agent.id}`,
+               sellerId: agent.owner,
+               title: meta.name || `Agent #${agent.id}`,
+               description: meta.description || 'On-chain registered agent',
+               category: meta.category || 'general',
+               location: locationStr,
+               price: meta.pricing ? parseFloat(String(meta.pricing).replace(/[^0-9.]/g, '')) || 10 : 10,
+               unit: 'USDC',
+             });
+           }
+         }
+         
+         console.log(`[Search] Fetched ${allServices.length} services, ${allDemands.length} demands`);
         
         // 智能关键词提取和匹配
         const userTextLower = text.toLowerCase();
@@ -578,6 +602,28 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
 
+  const buildAgentSystemInstruction = (service: Service | null): string => {
+    if (!service) return '';
+    return `You are a customer service agent for the following service:
+
+**Service**: ${service.title}
+**Category**: ${service.category}
+**Price**: ${service.price} ${service.unit}
+**Location**: ${service.location}
+
+**About this service**:
+${service.description}
+
+Answer customer questions based on the above information. Be helpful, concise, and friendly. If you don't have specific information to answer a question, say so honestly rather than making something up.`;
+  };
+
+  const handleChatAgent = (chatService: Service) => {
+    // Look up the full service from enriched services state (which has reputation data)
+    const enrichedService = services.find(s => s.id === chatService.id);
+    // Use enriched version if found (has reputation), otherwise use the passed service
+    setAgentChatService(enrichedService || chatService);
+  };
+
   const handleLocate = (item: any) => {
     setFocusedItem(item);
     setView('home');
@@ -632,13 +678,13 @@ const App: React.FC = () => {
         return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} currentUserAddress={address} />;
       case 'explore': 
         return <Marketplace services={services} onBook={handleAction} onLocate={handleLocate} />;
-      case 'offer': 
-        return (
-          <div className="space-y-12">
-            <AgentRegistrationPanel />
-            <DemandsBoard demands={demands} onAccept={handleAction} onLocate={handleLocate} />
-          </div>
-        );
+       case 'offer': 
+         return (
+           <div className="space-y-12">
+             <AgentRegistrationPanel onRegistrationSuccess={() => setRefreshTrigger(t => t + 1)} />
+             <DemandsBoard demands={demands} onAccept={handleAction} onLocate={handleLocate} />
+           </div>
+         );
       case 'docs': 
         return <Documentation />;
       case 'x402': 
@@ -708,6 +754,14 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+      {agentChatService && (
+        <AgentChatModal
+          isOpen={agentChatService !== null}
+          onClose={() => setAgentChatService(null)}
+          service={agentChatService}
+          systemInstruction={buildAgentSystemInstruction(agentChatService)}
+        />
+      )}
 
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-2xl border-b border-black/5 px-8 h-20 flex items-center justify-between">
         <div className="flex items-center gap-12">
@@ -767,7 +821,7 @@ const App: React.FC = () => {
              </div>
           </footer>
         </main>
-        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden bg-white/80 backdrop-blur-3xl shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] ${sidebarOpen ? 'w-[400px] border-l border-black/5' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} onBookService={handleAction} onAcceptDemand={handleAction} onLocate={handleLocate} isLoading={isLoading} className="h-full" /></div></aside>
+        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden ${sidebarOpen ? 'w-[400px]' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} onBookService={handleAction} onAcceptDemand={handleAction} onLocate={handleLocate} onChatAgent={handleChatAgent} isLoading={isLoading} className="h-full" /></div></aside>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`fixed top-1/2 -translate-y-1/2 z-50 transition-all duration-500 flex items-center justify-center group ${sidebarOpen ? 'right-[400px]' : 'right-0'}`} aria-label="Toggle AI Agent"><div className={`flex items-center gap-2 px-3 py-6 rounded-l-3xl shadow-2xl border-y border-l transition-all ${sidebarOpen ? 'bg-white border-black/5 text-slate-400 hover:text-blue-600' : 'bg-slate-900 border-white/10 text-white hover:bg-blue-600 translate-x-1 hover:translate-x-0'}`}><div className="flex flex-col items-center gap-1"><span className={`text-[10px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-opacity ${sidebarOpen ? 'opacity-40' : 'opacity-100'}`}>{sidebarOpen ? 'CLOSE' : 'AGENT'}</span><svg className={`w-5 h-5 mt-2 transition-transform duration-500 ${sidebarOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg></div></div></button>
       </div>
     </div>

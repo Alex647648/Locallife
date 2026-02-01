@@ -15,6 +15,7 @@ interface ChatWindowProps {
   onBookService?: (service: Service) => void;
   onAcceptDemand?: (demand: Demand) => void;
   onLocate?: (item: Service | Demand) => void;
+  onChatAgent?: (service: Service) => void;
   placeholder?: string;
   className?: string;
 }
@@ -28,6 +29,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onBookService,
   onAcceptDemand,
   onLocate,
+  onChatAgent,
   placeholder = "How can I help you today?",
   className = ""
 }) => {
@@ -191,9 +193,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
-        {messages.filter(m => m.role !== 'system').map((msg) => {
+        {messages.filter(m => m.role !== 'system').map((msg, index, filteredMsgs) => {
+          // Detect if this is the currently-streaming message to prevent card jitter
+          const isStreamingMessage = isLoading && msg.role === 'assistant' && 
+            index === filteredMsgs.length - 1;
+
           // 检查是否包含JSON动作（预览、服务卡片、需求卡片等）
-          const jsonMatches = Array.from(msg.content.matchAll(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/g));
+          // Skip card extraction entirely for the streaming message to prevent jitter
+          const jsonMatches = isStreamingMessage 
+            ? [] 
+            : Array.from(msg.content.matchAll(/@@@JSON_START@@@([\s\S]*?)@@@JSON_END@@@/g));
           const serviceCards: Service[] = [];
           const demandCards: Demand[] = [];
           let hasPreview = false;
@@ -241,7 +250,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           
           // 清理消息内容（移除所有JSON，但保留预览JSON用于CardPreview组件）
           let cleanContent = msg.content;
-          if (!hasPreview) {
+          if (isStreamingMessage) {
+            // During streaming, hide any partial or complete JSON blocks from display
+            cleanContent = cleanContent.replace(/@@@JSON_START@@@[\s\S]*/g, '').trim();
+          } else if (!hasPreview) {
             // 如果没有预览动作，移除所有JSON（包括create_service和create_demand）
             cleanContent = msg.content.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/g, '').trim();
           } else {
@@ -280,6 +292,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                         service={service}
                         onSelect={onBookService || (() => {})}
                         onLocate={onLocate ? () => onLocate(service) : undefined}
+                        onChatAgent={onChatAgent}
                       />
                     </div>
                   ))}
