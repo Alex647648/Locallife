@@ -9,7 +9,7 @@ import {
 } from './types';
 import { 
   SYSTEM_INSTRUCTIONS,
-  MOCK_SERVICES,
+  MOCK_SERVICES, 
   MOCK_DEMANDS
 } from './constants';
 import { getAgentResponseStream } from './services/geminiService';
@@ -582,7 +582,7 @@ const App: React.FC = () => {
               location: actionData.data.location
             });
             
-            const newService = await apiService.createService({
+             const newService = await apiService.createService({
               id: `s-${Date.now()}`,
               ...actionData.data,
               sellerId: address || '0xCurrentUser',
@@ -638,9 +638,9 @@ Answer customer questions based on the above information. Be helpful, concise, a
     }, 100);
   };
 
-   const handleAction = async (item: any) => {
+  const handleAction = async (item: any) => {
       if (!isConnected) { connectWallet(); return; }
-      if (role === UserRole.BUYER) {
+    if (role === UserRole.BUYER) {
         if (item.reputation?.agentId) {
           setPendingAgentId(item.reputation.agentId);
         }
@@ -651,10 +651,10 @@ Answer customer questions based on the above information. Be helpful, concise, a
             ? item.sellerId 
             : undefined;
         await booking.book(item.id, item.price || 0, payTo);
-      } else {
-        alert(`Response sent to: ${item.title}`);
-      }
-    };
+    } else {
+      alert(`Response sent to: ${item.title}`);
+    }
+  };
 
   // handleConfirmCard 已移除 - 现在只通过AI的create动作来创建卡片，避免重复创建
 
@@ -683,7 +683,7 @@ Answer customer questions based on the above information. Be helpful, concise, a
         return <Home services={services} demands={demands} onAction={handleAction} focusItem={focusedItem} currentUserAddress={address} />;
       case 'explore': 
         return <Marketplace services={services} onBook={handleAction} onLocate={handleLocate} />;
-       case 'offer': 
+      case 'offer': 
          return (
            <DemandsBoard 
              demands={demands} 

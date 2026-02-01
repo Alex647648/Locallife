@@ -56,6 +56,51 @@ const MODELS = {
   ]
 };
 
+const PROVIDER_API_INFO = {
+  google: {
+    apiName: 'Gemini API credentials',
+    placeholder: 'Enter your Gemini API Key',
+    linkText: 'Google AI Studio',
+    linkUrl: 'https://aistudio.google.com/app/apikey'
+  },
+  openai: {
+    apiName: 'OpenAI API credentials',
+    placeholder: 'Enter your OpenAI API Key',
+    linkText: 'OpenAI Platform',
+    linkUrl: 'https://platform.openai.com/api-keys'
+  },
+  anthropic: {
+    apiName: 'Anthropic API credentials',
+    placeholder: 'Enter your Anthropic API Key',
+    linkText: 'Anthropic Console',
+    linkUrl: 'https://console.anthropic.com/'
+  },
+  deepseek: {
+    apiName: 'DeepSeek API credentials',
+    placeholder: 'Enter your DeepSeek API Key',
+    linkText: 'DeepSeek Platform',
+    linkUrl: 'https://platform.deepseek.com/'
+  },
+  qwen: {
+    apiName: 'Qwen API credentials',
+    placeholder: 'Enter your Qwen API Key',
+    linkText: 'Alibaba Cloud',
+    linkUrl: 'https://dashscope.console.aliyun.com/'
+  },
+  zhipu: {
+    apiName: 'Zhipu API credentials',
+    placeholder: 'Enter your Zhipu API Key',
+    linkText: 'Zhipu Platform',
+    linkUrl: 'https://open.bigmodel.cn/'
+  },
+  minimax: {
+    apiName: 'MiniMax API credentials',
+    placeholder: 'Enter your MiniMax API Key',
+    linkText: 'MiniMax Platform',
+    linkUrl: 'https://www.minimax.chat/'
+  }
+};
+
 const ProviderIcon: React.FC<{ provider: typeof PROVIDERS[0]; size?: string }> = ({ provider, size = "w-5 h-5" }) => {
   const [error, setError] = useState(false);
   
@@ -141,10 +186,10 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
       return;
     }
 
-    // 验证 API Key 格式（Gemini API Key 通常以特定格式开头）
-    if (!trimmedKey.startsWith('AI') && trimmedKey.length < 20) {
+    // 基本格式验证（不同提供商的 API Key 格式不同，后端会进行实际验证）
+    if (trimmedKey.length < 10) {
       setSaveStatus('error');
-      setSaveMessage('Invalid API Key format. Please check your key.');
+      setSaveMessage('API Key seems too short. Please check your key.');
       return;
     }
 
@@ -405,9 +450,9 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex flex-col">
+               <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-0.5">API Key</span>
-                  <span className="text-[10px] text-slate-400 font-medium">Gemini API credentials</span>
+                  <span className="text-[10px] text-slate-400 font-medium">{PROVIDER_API_INFO[selectedProvider as keyof typeof PROVIDER_API_INFO]?.apiName || 'API credentials'}</span>
                 </div>
                 <button
                   onClick={() => setShowApiKey(!showApiKey)}
@@ -421,7 +466,7 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
                   type={showApiKey ? 'text' : 'password'}
                   value={localApiKey}
                   onChange={(e) => handleApiKeyChange(e.target.value)}
-                  placeholder="Enter your Gemini API Key"
+                  placeholder={PROVIDER_API_INFO[selectedProvider as keyof typeof PROVIDER_API_INFO]?.placeholder || 'Enter your API Key'}
                   disabled={saveStatus === 'saving'}
                   className={`w-full px-4 py-3 bg-white border rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30 text-slate-900 transition-all pr-20 ${
                     saveStatus === 'error' ? 'border-red-300 focus:border-red-500' : 
@@ -429,7 +474,7 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
                     'border-slate-200'
                   } ${saveStatus === 'saving' ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
-                <button
+              <button 
                   onClick={handleSaveApiKey}
                   disabled={saveStatus === 'saving'}
                   className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all active:scale-95 ${
@@ -454,13 +499,13 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
                     <div className="flex items-center gap-1.5">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
+                </svg>
                       <span>Saved</span>
                     </div>
                   ) : (
                     'Save'
                   )}
-                </button>
+              </button>
               </div>
               
               {/* 状态消息 */}
@@ -493,12 +538,12 @@ const AgentSettings: React.FC<AgentSettingsProps> = ({
               <p className="text-[9px] text-slate-400 leading-relaxed">
                 Your API key is stored locally and sent with each request. Get your key from{' '}
                 <a 
-                  href="https://aistudio.google.com/app/apikey" 
+                  href={PROVIDER_API_INFO[selectedProvider as keyof typeof PROVIDER_API_INFO]?.linkUrl || '#'} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-700 underline"
                 >
-                  Google AI Studio
+                  {PROVIDER_API_INFO[selectedProvider as keyof typeof PROVIDER_API_INFO]?.linkText || 'Provider Platform'}
                 </a>
               </p>
             </div>

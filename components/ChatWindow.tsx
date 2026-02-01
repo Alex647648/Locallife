@@ -45,6 +45,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     type: 'service' | 'demand';
     data: Partial<Service> | Partial<Demand>;
   } | null>(null);
+  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,6 +54,28 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // 监听 API Key 变化，当 API Key 被设置时隐藏提示
+  useEffect(() => {
+    if (apiKey && apiKey.trim() !== '') {
+      setShowApiKeyPrompt(false);
+    }
+  }, [apiKey]);
+
+  // 监听 localStorage 中 API Key 的变化（用于跨标签页同步）
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'gemini_api_key') {
+        setApiKey(e.newValue || '');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   // 自适应输入框高度
   useEffect(() => {
@@ -74,6 +97,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+    
+    // 检查 API Key 是否已设置
+    if (!apiKey || apiKey.trim() === '') {
+      setShowApiKeyPrompt(true);
+      // 3秒后自动隐藏提示
+      setTimeout(() => setShowApiKeyPrompt(false), 5000);
+      return;
+    }
+    
+    setShowApiKeyPrompt(false);
     onSendMessage(input, modelId, apiKey);
     setInput('');
     // 重置输入框高度
@@ -415,6 +448,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-6 bg-white/20 border-t border-black/5 shrink-0">
+        {/* API Key 提示 */}
+        {showApiKeyPrompt && (
+          <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-amber-900 mb-1">API Key Required</p>
+              <p className="text-[10px] text-amber-700 leading-relaxed">
+                Please set up your API Key in the settings first to start chatting.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setShowApiKeyPrompt(false);
+                setShowSettings(true);
+              }}
+              className="text-[9px] font-bold uppercase tracking-widest text-amber-700 hover:text-amber-900 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Open Settings
+            </button>
+          </div>
+        )}
         <div className="relative flex items-end group">
           <textarea
             ref={textareaRef}
@@ -425,6 +481,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 if (!input.trim() || isLoading) return;
+                
+                // 检查 API Key 是否已设置
+                if (!apiKey || apiKey.trim() === '') {
+                  setShowApiKeyPrompt(true);
+                  setTimeout(() => setShowApiKeyPrompt(false), 5000);
+                  return;
+                }
+                
+                setShowApiKeyPrompt(false);
                 onSendMessage(input, modelId, apiKey);
                 setInput('');
                 // 重置输入框高度
