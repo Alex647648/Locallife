@@ -63,20 +63,20 @@ export function useFeedback(): UseFeedbackReturn {
           throw new Error('Failed to generate feedback on backend');
         }
 
-        const feedbackValue = BigInt(input.rating) * 100n;
+         const feedbackValue = BigInt(input.rating) * 20n;
 
-        const txResult = await giveFeedback(
-          wallet.provider,
-          wallet.address,
-          BigInt(input.agentId),
-          feedbackValue,
-          2,
-          'service',
-          'locallife',
-          '',
-          backendResult.feedbackURI,
-          backendResult.feedbackHash,
-        );
+         const txResult = await giveFeedback(
+           wallet.provider,
+           wallet.address,
+           BigInt(input.agentId),
+           feedbackValue,
+           2,
+           'starred',
+           'locallife',
+           '',
+           backendResult.feedbackURI,
+           backendResult.feedbackHash,
+         );
 
         setResult({ ...txResult, feedbackURI: backendResult.feedbackURI });
       } catch (e: unknown) {

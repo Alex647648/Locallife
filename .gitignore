@@ -38,3 +38,4 @@ AGENTS.md
 state.json
 test-results/
 playwright-report/
+.runtime/

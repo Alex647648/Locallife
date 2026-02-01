@@ -3,6 +3,7 @@ import { config } from '../config';
 import {
   saveAgentRegistration,
   saveFeedback,
+  updateAgentId,
   isValidWallet,
   isValidOrderId,
 } from '../storage/hostedJsonStore';
@@ -46,7 +47,7 @@ erc8004WriteRouter.post('/register', async (req: Request, res: Response) => {
       pricing,
     });
 
-    const baseUrl = `http://localhost:${config.port}`;
+    const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${config.port}`;
     const agentURI = `${baseUrl}/agents/by-wallet/${sellerWallet.toLowerCase()}/registration.json`;
 
     res.json({
@@ -109,7 +110,7 @@ erc8004WriteRouter.post('/feedback', async (req: Request, res: Response) => {
       comment: comment || '',
     });
 
-    const baseUrl = `http://localhost:${config.port}`;
+    const baseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${config.port}`;
     const feedbackURI = `${baseUrl}/feedback/${orderId}/${buyerWallet.toLowerCase()}.json`;
 
     res.json({
@@ -122,6 +123,33 @@ erc8004WriteRouter.post('/feedback', async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('[erc8004Write] feedback error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: (err as Error).message,
+    });
+  }
+});
+
+erc8004WriteRouter.patch('/register/:wallet/backfill', async (req: Request, res: Response) => {
+  const wallet = Array.isArray(req.params.wallet) ? req.params.wallet[0] : req.params.wallet;
+  const { agentId } = req.body ?? {};
+
+  if (!isValidWallet(wallet)) {
+    return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'Invalid wallet' });
+  }
+  if (!agentId || typeof agentId !== 'string') {
+    return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'agentId is required' });
+  }
+
+  try {
+    const data = await updateAgentId(wallet, agentId);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    console.error('[erc8004Write] backfill error:', err);
     res.status(500).json({
       success: false,
       error: 'INTERNAL_ERROR',

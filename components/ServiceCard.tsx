@@ -66,10 +66,39 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onLocate }
         <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-1.5 rounded-full ${isDigital ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'}`}>{service.category}</span>
       </div>
 
-      <h4 className="text-xl font-bold text-slate-900 mb-2 leading-tight tracking-tight group-hover:text-blue-600 transition-colors">{service.title}</h4>
-      <p className="text-[13px] text-slate-500 font-medium leading-relaxed mb-6 line-clamp-2">{service.description}</p>
-      
-      <div className="flex items-center justify-between mb-6">
+       <h4 className="text-xl font-bold text-slate-900 mb-2 leading-tight tracking-tight group-hover:text-blue-600 transition-colors">{service.title}</h4>
+       <p className="text-[13px] text-slate-500 font-medium leading-relaxed mb-6 line-clamp-2">{service.description}</p>
+       
+       {/* Reputation Badge */}
+       {service.reputation && service.reputation.reviewCount > 0 && (
+         <div className="flex items-center gap-2 mb-4">
+           <div className="flex gap-0.5">
+             {[1, 2, 3, 4, 5].map((star) => (
+               <svg
+                 key={star}
+                 className={`w-4 h-4 ${star <= Math.round(service.reputation!.averageRating) ? 'text-amber-400' : 'text-slate-200'}`}
+                 fill="currentColor"
+                 viewBox="0 0 24 24"
+               >
+                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+               </svg>
+             ))}
+           </div>
+           <span className="text-[11px] font-semibold text-slate-500">
+             {service.reputation.averageRating.toFixed(1)}
+           </span>
+           <span className="text-[10px] text-slate-400">
+             ({service.reputation.reviewCount} reviews)
+           </span>
+           {service.reputation.verified && (
+             <span className="text-[8px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+               On-Chain Verified
+             </span>
+           )}
+         </div>
+       )}
+       
+       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-400">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           {service.location}

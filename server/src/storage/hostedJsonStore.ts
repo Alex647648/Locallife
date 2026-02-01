@@ -178,18 +178,44 @@ export async function saveFeedback(
   const filePath = getFeedbackPath(orderId, buyerWallet);
   await writeJsonFile(filePath, feedback);
 
-  const { createHash } = await import('crypto');
-  const feedbackHash =
-    '0x' +
-    createHash('sha256')
-      .update(JSON.stringify(feedback))
-      .digest('hex');
+  const { keccak256, toUtf8Bytes } = await import('ethers');
+  const compactJson = JSON.stringify(feedback);
+  const feedbackHash = keccak256(toUtf8Bytes(compactJson));
 
   return { filePath, feedback, feedbackHash };
 }
 
+export async function updateAgentId(wallet: string, agentId: string): Promise<any> {
+  if (!isValidWallet(wallet)) throw new Error('Invalid wallet');
+  const filePath = getAgentRegistrationPath(wallet);
+  const data = await readJsonFile(filePath);
+  if (!data) throw new Error('Registration not found');
+  data.agentId = agentId;
+  data.updatedAt = new Date().toISOString();
+  await writeJsonFile(filePath, data);
+  return data;
+}
+
 export async function getWellKnownRegistrations(): Promise<any> {
-  return {
-    registrations: [],
-  };
+  try {
+    const agentsDir = path.join(DATA_DIR, 'agents', 'by-wallet');
+    const files = await fs.readdir(agentsDir).catch(() => []);
+    const registrations = [];
+
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      const data = await readJsonFile(path.join(agentsDir, file));
+      if (data && data.agentId) {
+        registrations.push({
+          agentId: data.agentId,
+          agentRegistry: '0x8004A818BFB912233c491871b3d84c89A494BD9e',
+          chainId: 11155111,
+        });
+      }
+    }
+
+    return { registrations };
+  } catch {
+    return { registrations: [] };
+  }
 }
