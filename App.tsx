@@ -15,6 +15,7 @@ import {
 } from './constants';
 import { getAgentResponseStream } from './services/geminiService';
 import { apiService } from './services/apiService';
+import { generateServiceImageUrl } from './utils/imageGenerator';
 import ChatWindow from './components/ChatWindow';
 import Marketplace from './components/Marketplace';
 import DemandsBoard from './components/DemandsBoard';
@@ -258,11 +259,157 @@ const App: React.FC = () => {
         searchContext = '\n\n=== SEARCH UNAVAILABLE ===\n';
         searchContext += 'Unable to search the LocalLife platform at the moment. You can still help the user, but you should suggest they check the marketplace directly or create a demand. Remember: you can only work with LocalLife platform data.\n';
       }
+    } else if (role === UserRole.SELLER) {
+      // 卖家模式：检索匹配的需求
+      // 计算用户消息数量（对话轮数）
+      const userMessageCount = currentMsgs.filter(m => m.role === 'user').length;
+      const shouldRecommendDemands = userMessageCount >= 3; // 至少3轮对话后才推荐
+      
+      // 只有在对话轮数足够时才进行需求匹配
+      if (shouldRecommendDemands) {
+        try {
+          // 获取所有需求（如果API返回空，使用本地MOCK数据作为后备）
+          let allDemands = await apiService.getDemands();
+          
+          // 如果API返回空数组，使用本地MOCK数据
+          if (allDemands.length === 0) {
+            allDemands = MOCK_DEMANDS;
+          }
+          
+          // 智能关键词提取和匹配 - 将卖家的能力描述与需求进行匹配
+          const userTextLower = text.toLowerCase();
+        
+        // 类别映射（支持中英文和同义词）
+        const categoryMap: { [key: string]: string[] } = {
+          'culinary': ['culinary', 'cooking', 'food', 'restaurant', 'chef', 'cuisine', '烹饪', '美食', '料理'],
+          'wellness': ['wellness', 'health', 'fitness', 'yoga', 'massage', 'spa', '健康', '健身', '瑜伽', '按摩'],
+          'education': ['education', 'class', 'course', 'lesson', 'tutor', 'learn', '教育', '课程', '学习', '教学'],
+          'tours': ['tour', 'guide', 'travel', 'trip', 'excursion', 'sightseeing', '旅游', '导游', '旅行', '观光'],
+          'digital': ['digital', 'online', 'remote', 'virtual', 'web', 'tech', '数字', '在线', '远程', '虚拟']
+        };
+        
+        // 查找匹配的类别
+        let matchedCategories: string[] = [];
+        for (const [category, keywords] of Object.entries(categoryMap)) {
+          if (keywords.some(kw => userTextLower.includes(kw))) {
+            matchedCategories.push(category);
+          }
+        }
+        
+        // 提取位置关键词
+        const locationKeywords = ['chiang mai', 'bangkok', 'phuket', 'pattaya', '清迈', '曼谷', '普吉', '芭提雅'];
+        const matchedLocation = locationKeywords.find(loc => userTextLower.includes(loc));
+        
+        // 提取用户查询中的关键词
+        const stopWords = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'let', 'put', 'say', 'she', 'too', 'use', 'want', 'find', 'looking', 'a', 'an', 'i', 'am', 'is', 'to', 'of', 'in', 'on', 'at', 'by', 'with', 'from', 'as', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'must', 'offer', 'provide', 'can', 'help', 'do', 'service'];
+        const userKeywords = userTextLower
+          .split(/\s+/)
+          .filter(w => w.length >= 2 && !stopWords.includes(w));
+        
+        // 构建搜索查询字符串
+        const searchQuery = userTextLower.trim();
+        
+        // 筛选匹配的需求
+        if (matchedCategories.length > 0) {
+          relevantDemands = allDemands.filter(d => {
+            const categoryMatch = matchedCategories.some(cat => d.category.toLowerCase() === cat);
+            const keywordMatch = userKeywords.some(kw => 
+              d.title.toLowerCase().includes(kw) || 
+              d.description.toLowerCase().includes(kw)
+            );
+            const fullTextMatch = d.title.toLowerCase().includes(searchQuery) || 
+                                  d.description.toLowerCase().includes(searchQuery);
+            return categoryMatch || keywordMatch || fullTextMatch;
+          });
+        } else {
+          relevantDemands = allDemands.filter(d => {
+            const keywordMatch = userKeywords.some(kw => 
+              d.title.toLowerCase().includes(kw) || 
+              d.description.toLowerCase().includes(kw) ||
+              d.location.toLowerCase().includes(kw) ||
+              d.category.toLowerCase().includes(kw)
+            );
+            const fullTextMatch = d.title.toLowerCase().includes(searchQuery) || 
+                                  d.description.toLowerCase().includes(searchQuery);
+            return keywordMatch || fullTextMatch;
+          });
+        }
+        
+        // 如果匹配了位置，进一步筛选
+        if (matchedLocation) {
+          relevantDemands = relevantDemands.filter(d => 
+            d.location.toLowerCase().includes(matchedLocation) || 
+            d.location.toLowerCase() === 'remote'
+          );
+        }
+
+        // 调试日志（开发环境）
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Demand Match Debug]', {
+            userQuery: text,
+            allDemandsCount: allDemands.length,
+            matchedCategories,
+            userKeywords,
+            relevantDemandsCount: relevantDemands.length,
+            relevantDemands: relevantDemands.map(d => ({ id: d.id, title: d.title }))
+          });
+        }
+
+          // 构建搜索上下文 - 匹配的需求信息
+          if (relevantDemands.length > 0) {
+            searchContext = '\n\n=== MATCHING DEMANDS FOUND (FRIENDLY SUGGESTION) ===\n';
+            searchContext += `Based on what you've told me about your service, I found some people looking for what you might be able to offer.\n`;
+            searchContext += 'These are just suggestions - you can check them out if you\'re interested, or we can continue creating your service card.\n\n';
+            
+            searchContext += `I found ${relevantDemands.length} potential match(es):\n\n`;
+            relevantDemands.slice(0, 3).forEach((d, idx) => {
+              searchContext += `[DEMAND #${idx + 1}]\n`;
+              searchContext += `ID: ${d.id}\n`;
+              searchContext += `Title: "${d.title}"\n`;
+              searchContext += `Category: ${d.category}\n`;
+              searchContext += `Location: ${d.location}\n`;
+              searchContext += `Budget: ${d.budget} USDC\n`;
+              searchContext += `Description: ${d.description}\n`;
+              searchContext += `Avatar: ${d.avatarUrl || 'N/A'}\n`;
+              searchContext += `\nTo show this demand card, use:\n`;
+              searchContext += `@@@JSON_START@@@\n{"action": "show_demand", "data": {"id": "${d.id}", "title": "${d.title}", "category": "${d.category}", "description": "${d.description}", "location": "${d.location}", "budget": ${d.budget}, "avatarUrl": "${d.avatarUrl || ''}"}}\n@@@JSON_END@@@\n\n`;
+            });
+            searchContext += 'SUGGESTION: You can show these demands to the user in a friendly, non-pushy way.\n';
+            searchContext += 'Say something like: "By the way, I noticed some people looking for [category] services. Would you like to see them? They might be a good match!"\n';
+            searchContext += 'Use a friendly, suggestive tone - not urgent or demanding.\n';
+            searchContext += 'If they\'re interested, show 1-2 most relevant cards using "show_demand" action.\n';
+            searchContext += 'If they want to continue creating their service, that\'s perfectly fine too!\n';
+          } else {
+            searchContext = '\n\n=== NO MATCHING DEMANDS FOUND ===\n';
+            searchContext += 'I searched the LocalLife platform but didn\'t find any demands matching what the user can offer.\n';
+            searchContext += 'This is perfectly fine! Continue helping them create their service card.\n';
+          }
+        } catch (error) {
+          console.error('Error fetching demands:', error);
+          searchContext = '\n\n=== SEARCH UNAVAILABLE ===\n';
+          searchContext += 'Unable to search the LocalLife platform at the moment. You can still help the user create their service card.\n';
+        }
+      } else {
+        // 对话轮数不足，不进行需求匹配
+        searchContext = '\n\n=== INFORMATION GATHERING PHASE ===\n';
+        searchContext += `Current conversation round: ${userMessageCount + 1}\n`;
+        searchContext += 'You are still in the information gathering phase. Continue asking friendly questions to understand:\n';
+        searchContext += '1. What service they offer\n';
+        searchContext += '2. Category\n';
+        searchContext += '3. Description/details\n';
+        searchContext += '4. Location\n';
+        searchContext += '5. Price expectations\n';
+        searchContext += '6. Unit (per hour, session, etc.)\n\n';
+        searchContext += 'DO NOT search for or recommend demands yet. Wait until you have collected enough information (at least 3-5 rounds of conversation).\n';
+        searchContext += 'Focus on understanding their service first, then we can look for matching opportunities later.\n';
+      }
     }
 
     // 构建增强的系统指令
     let enhancedInstruction = role === UserRole.BUYER ? SYSTEM_INSTRUCTIONS.EXPLORE_AGENT : SYSTEM_INSTRUCTIONS.OFFER_AGENT;
     if (role === UserRole.BUYER) {
+      enhancedInstruction += searchContext;
+    } else if (role === UserRole.SELLER) {
       enhancedInstruction += searchContext;
     }
 
@@ -300,22 +447,30 @@ const App: React.FC = () => {
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
             });
             setDemands(prev => [newDemand, ...prev]);
-            // Remove JSON from UI and add success message
-            const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
+            // Remove JSON from UI and add success message (使用g标志移除所有JSON)
+            const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/g, '').trim();
             setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Demand card created successfully!' } : m));
           } else if (actionData.action === 'create_service') {
             // User confirmed, create the service card
-             const newService = await apiService.createService({
+            // 自动生成配图
+            const autoImageUrl = generateServiceImageUrl({
+              title: actionData.data.title || '',
+              description: actionData.data.description,
+              category: actionData.data.category || '',
+              location: actionData.data.location
+            });
+            
+            const newService = await apiService.createService({
               id: `s-${Date.now()}`,
               ...actionData.data,
               sellerId: '0xCurrentUser',
               tokenAddress: `0x${Date.now().toString(16)}`,
-              imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=800&auto=format&fit=crop',
+              imageUrl: autoImageUrl,
               avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
             });
             setServices(prev => [newService, ...prev]);
             // Remove JSON from UI and add success message
-            const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/, '').trim();
+            const cleanText = fullResponse.replace(/@@@JSON_START@@@[\s\S]*?@@@JSON_END@@@/g, '').trim();
             setMsgs(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanText + '\n\n✅ Service card created successfully!' } : m));
           }
         } catch (e) {
@@ -349,62 +504,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleConfirmCard = async (type: 'service' | 'demand', data: Partial<Service> | Partial<Demand>) => {
-    try {
-      if (type === 'service') {
-        const serviceData = data as Partial<Service>;
-        const newService = await apiService.createService({
-          id: `s-${Date.now()}`,
-          ...serviceData,
-          sellerId: '0xCurrentUser',
-          tokenAddress: `0x${Date.now().toString(16)}`,
-          imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=800&auto=format&fit=crop',
-          avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
-        });
-        setServices(prev => [newService, ...prev]);
-        
-        // 添加确认消息到聊天记录
-        const setMsgs = role === UserRole.SELLER ? setSellerMessages : setBuyerMessages;
-        const confirmMsg: ChatMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `✅ Service card created successfully! "${serviceData.title}" is now live on the marketplace.`,
-          timestamp: Date.now()
-        };
-        setMsgs(prev => [...prev, confirmMsg]);
-      } else {
-        const demandData = data as Partial<Demand>;
-        const newDemand = await apiService.postDemand({
-          id: `d-${Date.now()}`,
-          ...demandData,
-          buyerId: '0xCurrentUser',
-          timestamp: Date.now(),
-          avatarUrl: 'https://i.pravatar.cc/150?u=0xCurrentUser'
-        });
-        setDemands(prev => [newDemand, ...prev]);
-        
-        // 添加确认消息到聊天记录
-        const setMsgs = role === UserRole.BUYER ? setBuyerMessages : setSellerMessages;
-        const confirmMsg: ChatMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `✅ Demand card posted successfully! "${demandData.title}" is now visible to service providers.`,
-          timestamp: Date.now()
-        };
-        setMsgs(prev => [...prev, confirmMsg]);
-      }
-    } catch (error) {
-      console.error('Error creating card:', error);
-      const setMsgs = role === UserRole.BUYER ? setBuyerMessages : setSellerMessages;
-      const errorMsg: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: '❌ Sorry, there was an error creating your card. Please try again.',
-        timestamp: Date.now()
-      };
-      setMsgs(prev => [...prev, errorMsg]);
-    }
-  };
+  // handleConfirmCard 已移除 - 现在只通过AI的create动作来创建卡片，避免重复创建
 
   const renderContent = () => {
     switch (view) {
@@ -457,7 +557,7 @@ const App: React.FC = () => {
              </div>
           </footer>
         </main>
-        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden bg-white/80 backdrop-blur-3xl shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] ${sidebarOpen ? 'w-[400px] border-l border-black/5' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} onConfirmCard={handleConfirmCard} isLoading={isLoading} className="h-full" /></div></aside>
+        <aside className={`fixed right-0 top-20 bottom-0 z-40 transition-all duration-500 overflow-hidden bg-white/80 backdrop-blur-3xl shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] ${sidebarOpen ? 'w-[400px] border-l border-black/5' : 'w-0'}`}><div className="w-[400px] h-full"><ChatWindow role={role} onRoleChange={(r) => { setRole(r); setView(r === UserRole.BUYER ? 'explore' : 'offer'); }} messages={role === UserRole.BUYER ? buyerMessages : sellerMessages} onSendMessage={handleSendMessage} isLoading={isLoading} className="h-full" /></div></aside>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`fixed top-1/2 -translate-y-1/2 z-50 transition-all duration-500 flex items-center justify-center group ${sidebarOpen ? 'right-[400px]' : 'right-0'}`} aria-label="Toggle AI Agent"><div className={`flex items-center gap-2 px-3 py-6 rounded-l-3xl shadow-2xl border-y border-l transition-all ${sidebarOpen ? 'bg-white border-black/5 text-slate-400 hover:text-blue-600' : 'bg-slate-900 border-white/10 text-white hover:bg-blue-600 translate-x-1 hover:translate-x-0'}`}><div className="flex flex-col items-center gap-1"><span className={`text-[10px] font-black uppercase tracking-[0.2em] [writing-mode:vertical-lr] transition-opacity ${sidebarOpen ? 'opacity-40' : 'opacity-100'}`}>{sidebarOpen ? 'CLOSE' : 'AGENT'}</span><svg className={`w-5 h-5 mt-2 transition-transform duration-500 ${sidebarOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg></div></div></button>
       </div>
     </div>
