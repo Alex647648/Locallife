@@ -86,4 +86,4 @@ export const parseServiceJson = async (text: string): Promise<ServiceParams | nu
 3.  **结算 (Settlement)**: 履约证明触发资金释放或争议处理。
 
 ---
-*Built for ETHGlobal 2026*
+*Built for ETHChiangmai*

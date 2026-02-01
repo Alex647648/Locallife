@@ -343,7 +343,7 @@ Locallife/
 
 ## 📄 许可证
 
-本项目为 ETHGlobal 2026 黑客松项目。
+本项目为 ETHChiangmai 黑客松项目。
 
 ---
 

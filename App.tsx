@@ -41,10 +41,10 @@ const App: React.FC = () => {
   const [focusedItem, setFocusedItem] = useState<any | null>(null);
 
   const [buyerMessages, setBuyerMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'assistant', content: 'Explore mode active. I can help you find verified services in Chiang Mai.', timestamp: Date.now() }
+    { id: '1', role: 'assistant', content: 'So nice to see you here! What do you want to explore today?', timestamp: Date.now() }
   ]);
   const [sellerMessages, setSellerMessages] = useState<ChatMessage[]>([
-    { id: '1', role: 'assistant', content: 'Offer mode active. Ready to tokenize your skills as X402 assets.', timestamp: Date.now() }
+    { id: '1', role: 'assistant', content: 'So nice to see you here! Tell me what you want to share today?', timestamp: Date.now() }
   ]);
   
   const [isLoading, setIsLoading] = useState(false);
