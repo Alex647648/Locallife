@@ -12,10 +12,16 @@ interface ServiceCardProps {
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onLocate, onChatAgent }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [imgStatus, setImgStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+  const [avatarError, setAvatarError] = useState(false);
   
   const isFeatured = service.price > 100;
   const isDigital = service.category === 'Digital';
   const fallbackUrl = 'https://images.unsplash.com/photo-1541613569553-332abbced5d2?q=80&w=800&auto=format&fit=crop';
+  const fallbackAvatarUrl = 'https://i.pravatar.cc/150?u=' + (service.sellerId || service.id);
+  
+  // Normalize category for display
+  const categoryDisplay = service.category || 'General';
+  const categoryUpper = categoryDisplay.toUpperCase();
 
   return (
     <div className={`group relative bg-white border rounded-[2.5rem] p-6 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl overflow-hidden ${
@@ -63,8 +69,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onLocate, 
       </div>
 
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full border border-black/5 overflow-hidden shadow-sm bg-slate-100"><img src={service.avatarUrl} alt="Provider" className="w-full h-full object-cover" /></div>
-        <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-1.5 rounded-full ${isDigital ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'}`}>{service.category}</span>
+        <div className="w-8 h-8 rounded-full border border-black/5 overflow-hidden shadow-sm bg-slate-100">
+          <img 
+            src={avatarError ? fallbackAvatarUrl : (service.avatarUrl || fallbackAvatarUrl)} 
+            alt="Provider" 
+            className="w-full h-full object-cover"
+            onError={() => setAvatarError(true)}
+          />
+        </div>
+        <span className={`text-[10px] font-bold uppercase tracking-[0.12em] px-2.5 py-1.5 rounded-full ${isDigital ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'}`}>{categoryUpper}</span>
       </div>
 
        <h4 className="text-xl font-bold text-slate-900 mb-2 leading-tight tracking-tight group-hover:text-blue-600 transition-colors">{service.title}</h4>
@@ -115,8 +128,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onLocate, 
 
       <div className="flex items-center justify-between border-t border-black/[0.04] pt-6">
         <div>
-          <div className="flex items-baseline gap-1"><span className="text-2xl font-bold text-slate-900 tracking-tight">{service.price}</span><span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">USDC</span></div>
-          <span className="text-[9px] text-slate-400 font-bold block mt-1 uppercase tracking-widest">{service.unit}</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">{service.price || 0}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">USDC</span>
+          </div>
+          {service.unit && (
+            <span className="text-[9px] text-slate-400 font-bold block mt-1 uppercase tracking-widest">{service.unit}</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {onChatAgent && service.description && (

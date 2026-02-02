@@ -120,6 +120,38 @@ const App: React.FC = () => {
              // Ensure location is always a string; if it's an object (e.g., { lat, lng }), fall back to default
              const locationValue = meta.location;
              const locationStr = typeof locationValue === 'string' ? locationValue : 'Chiang Mai';
+             
+             // Parse price from pricing or priceRange field
+             let price = 10;
+             let unit = 'USDC';
+             
+             if (meta.pricing) {
+               const pricingStr = String(meta.pricing);
+               price = parseFloat(pricingStr.replace(/[^0-9.]/g, '')) || 10;
+               // Extract unit from pricing string if available
+               const unitMatch = pricingStr.match(/\/(hr|day|session|person|walk|project|audit)/i);
+               if (unitMatch) {
+                 unit = `USDC/${unitMatch[1]}`;
+               }
+             } else if (meta.priceRange) {
+               // Parse priceRange like "$30-60/hr" or "$20-35/walk"
+               const rangeStr = String(meta.priceRange);
+               const numbers = rangeStr.match(/\d+/g);
+               if (numbers && numbers.length >= 1) {
+                 // Use the first number (minimum price) or average if two numbers
+                 const minPrice = parseFloat(numbers[0]);
+                 const maxPrice = numbers.length > 1 ? parseFloat(numbers[1]) : minPrice;
+                 price = Math.round((minPrice + maxPrice) / 2);
+               }
+               // Extract unit from priceRange
+               const unitMatch = rangeStr.match(/\/(hr|day|session|person|walk|project|audit)/i);
+               if (unitMatch) {
+                 unit = `USDC/${unitMatch[1]}`;
+               } else {
+                 unit = 'USDC';
+               }
+             }
+             
              syntheticServices.push({
                id: `agent-${agent.id}`,
                sellerId: agent.owner || ownerLower,
@@ -127,8 +159,8 @@ const App: React.FC = () => {
                description: meta.description || 'On-chain registered agent',
                category: meta.category || 'general',
                location: locationStr,
-               price: meta.pricing ? parseFloat(String(meta.pricing).replace(/[^0-9.]/g, '')) || 10 : 10,
-               unit: 'USDC',
+               price: price,
+               unit: unit,
                reputation: {
                  agentId: agent.id,
                  averageRating: 0,
